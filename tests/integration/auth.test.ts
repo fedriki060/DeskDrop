@@ -55,4 +55,10 @@ describe('Integración con Supabase local', () => {
     const { data } = await supabase.auth.getSession();
     expect(data.session).toBeNull();
   });
+
+  it('rechaza un correo de otro dominio', async () => {
+  const otro = createClient(url, key, { auth: { persistSession: false } });
+  const { error } = await otro.auth.signUp({ email: `ext-${Date.now()}@gmail.com`, password });
+  expect(error).not.toBeNull();
+});
 });
