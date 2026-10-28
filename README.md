@@ -87,6 +87,8 @@ Escanea el QR con Expo Go. Si la red no deja conectar, usa `npx expo start --tun
 | `npx supabase migration new <nombre>` | Crear una migración nueva |
 | `npx supabase test db` | Correr las pruebas pgTAP de la base |
 | `npx supabase status` | Ver URLs y claves locales |
+| `npm test` | Correr todas las pruebas
+| `npm run test:integration` | Prueba integracion con Supabase
 
 ## Cómo trabajamos
 
