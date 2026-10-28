@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test:db": "supabase test db",
+    "test:integration": "vitest run",
+    "test": "npm run test:db && npm run test:integration"
   },
   "repository": {
     "type": "git",
@@ -22,6 +24,8 @@
   },
   "homepage": "https://github.com/fedriki060/DeskDrop#readme",
   "devDependencies": {
-    "supabase": "^2.122.0"
+    "@supabase/supabase-js": "^2.118.0",
+    "supabase": "^2.122.0",
+    "vitest": "^5.0.5"
   }
 }
