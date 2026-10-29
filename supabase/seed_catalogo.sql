@@ -27,8 +27,8 @@ SET row_security = off;
 
 INSERT INTO "public"."comercios" ("id", "nombre", "descripcion", "horario_apertura", "horario_cierre", "activo", "creado_en", "tipo") VALUES
 	('c0000000-0000-0000-0000-000000000001', 'Cafetería Central Bloque 1', 'Cafetería principal del campus: café, bebidas frías, empanadas, combos y snacks.', '07:00:00', '18:00:00', true, '2026-10-28 02:57:19.133525+00', 'restaurante');
-
-
+	('c0000000-0000-0000-0000-000000000002', 'Papelería', 'Útiles escolares, impresiones y materiales de dibujo para estudiantes y docentes.', '07:30:00', '17:00:00', true, '2026-10-29 08:00:00+00', 'utensilios')
+	ON CONFLICT ("id") DO NOTHING;
 --
 -- Data for Name: zonas_campus; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -85,7 +85,17 @@ INSERT INTO "public"."productos" ("id", "comercio_id", "nombre", "descripcion", 
 	('81abcbb5-0967-4bb4-9e4b-86844351e196', 'c0000000-0000-0000-0000-000000000001', 'Botella de Agua Cristal 600ml', 'Agua pura sin gas en botella PET', 2000.00, 50, true, 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e', '2026-10-28 02:57:19.133525+00'),
 	('cad35a77-b087-462f-9775-199ed499bb8b', 'c0000000-0000-0000-0000-000000000001', 'Jugo Natural en Agua 12oz', 'Sabores: Mora, Mango o Maracuyá', 4000.00, 20, true, 'https://images.unsplash.com/photo-1613478223719-2ab802602423', '2026-10-28 02:57:19.133525+00'),
 	('7da7385c-dba6-4e4d-b00e-a232604c6a2d', 'c0000000-0000-0000-0000-000000000001', 'Gaseosa Coca-Cola Original 400ml', 'Bebida gaseosa personal bien fría', 3500.00, 30, true, 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97', '2026-10-28 02:57:19.133525+00');
-
+	('d0000000-0000-0000-0002-000000000001', 'c0000000-0000-0000-0000-000000000002', 'Cuaderno Cuadriculado 100 Hojas', 'Cuaderno argollado tamaño carta, pasta dura', 8500.00, 25, true, 'https://placehold.co/600x400/png?text=Cuaderno', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000002', 'c0000000-0000-0000-0000-000000000002', 'Lapicero Negro 0.7mm', 'Lapicero de tinta negra, punta fina', 1500.00, 80, true, 'https://placehold.co/600x400/png?text=Lapicero', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000003', 'c0000000-0000-0000-0000-000000000002', 'Lápiz HB N.º 2', 'Lápiz de grafito con borrador', 1000.00, 60, true, 'https://placehold.co/600x400/png?text=Lapiz', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000004', 'c0000000-0000-0000-0000-000000000002', 'Borrador de Nata', 'Borrador blanco que no mancha el papel', 800.00, 40, true, 'https://placehold.co/600x400/png?text=Borrador', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000005', 'c0000000-0000-0000-0000-000000000002', 'Calculadora Científica', 'Calculadora de 240 funciones para cálculo y física', 45000.00, 6, true, 'https://placehold.co/600x400/png?text=Calculadora', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000006', 'c0000000-0000-0000-0000-000000000002', 'Resaltadores x4', 'Colores amarillo, verde, rosado y naranja', 9000.00, 15, true, 'https://placehold.co/600x400/png?text=Resaltadores', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000007', 'c0000000-0000-0000-0000-000000000002', 'Regla 30cm', 'Regla plástica transparente', 2000.00, 30, true, 'https://placehold.co/600x400/png?text=Regla', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000008', 'c0000000-0000-0000-0000-000000000002', 'Hojas Block Carta x50', 'Hojas blancas sin rayas, tamaño carta', 4000.00, 20, true, 'https://placehold.co/600x400/png?text=Hojas', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000009', 'c0000000-0000-0000-0000-000000000002', 'Impresión Blanco y Negro', 'Precio por hoja tamaño carta', 300.00, 500, true, 'https://placehold.co/600x400/png?text=Impresion', '2026-10-29 08:00:00+00'),
+	('d0000000-0000-0000-0002-000000000010', 'c0000000-0000-0000-0000-000000000002', 'Memoria USB 32GB', 'Memoria USB 3.0 de 32 GB', 25000.00, 0, true, 'https://placehold.co/600x400/png?text=USB', '2026-10-29 08:00:00+00')
+ON CONFLICT ("id") DO NOTHING;
 
 --
 -- Data for Name: items_pedido; Type: TABLE DATA; Schema: public; Owner: postgres
