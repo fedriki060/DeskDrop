@@ -1,12 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useCarrito } from '../../context/CarritoContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';
+import { etiquetasRol, rutaInicial } from '../../utils/roles';
 
 export default function Perfil() {
-  const { usuario, cerrarSesion } = useAuth();
+  const router = useRouter();
+  const { usuario, roles, rolActivo, cambiarRolActivo, cerrarSesion } = useAuth();
   const { vaciar } = useCarrito();
+
+  const puedeSerDomiciliario = roles.includes('domiciliario');
+  const modoDomiciliario = rolActivo === 'domiciliario';
+
+  const onCambiarModo = (activar: boolean) => {
+    const nuevoRol = activar ? 'domiciliario' : 'solicitante';
+    cambiarRolActivo(nuevoRol);
+    router.navigate(rutaInicial(nuevoRol));
+  };
 
   const onCerrarSesion = () => {
     vaciar();
@@ -17,6 +29,18 @@ export default function Perfil() {
     <View style={styles.container}>
       <Ionicons name="person-circle-outline" size={96} color={colors.primary} />
       <Text style={styles.nombre}>{usuario}</Text>
+      <Text style={styles.rol}>Rol activo: {etiquetasRol[rolActivo]}</Text>
+
+      {puedeSerDomiciliario && (
+        <View style={styles.filaModo}>
+          <Text style={styles.textoModo}>Activar Domiciliario</Text>
+          <Switch
+            value={modoDomiciliario}
+            onValueChange={onCambiarModo}
+            trackColor={{ false: colors.border, true: colors.primary }}
+          />
+        </View>
+      )}
 
       <Pressable style={styles.boton} onPress={onCerrarSesion}>
         <Text style={styles.textoBoton}>Cerrar Sesión</Text>
@@ -35,10 +59,30 @@ const styles = StyleSheet.create({
   },
   nombre: {
     marginTop: spacing.sm,
-    marginBottom: spacing.xl,
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.text,
+  },
+  rol: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.xl,
+    fontSize: fontSize.md,
+    color: colors.textMuted,
+  },
+  filaModo: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.sm,
+  },
+  textoModo: {
+    fontSize: fontSize.lg,
+    color: colors.primary,
   },
   boton: {
     alignSelf: 'stretch',
