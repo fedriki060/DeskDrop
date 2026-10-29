@@ -1,44 +1,31 @@
 {
-  "name": "deskdrop-app",
+  "name": "deskdrop",
   "version": "1.0.0",
-  "main": "expo-router/entry",
-  "dependencies": {
-    "@expo/ui": "~58.0.24",
-    "@expo/vector-icons": "^15.0.2",
-    "expo": "~58.0.20",
-    "expo-constants": "~58.0.13",
-    "expo-device": "~58.0.5",
-    "expo-font": "~58.0.10",
-    "expo-glass-effect": "~58.0.5",
-    "expo-image": "~58.0.17",
-    "expo-linking": "~58.0.14",
-    "expo-router": "~58.0.27",
-    "expo-splash-screen": "~58.0.11",
-    "expo-status-bar": "~58.0.4",
-    "expo-symbols": "~58.0.4",
-    "expo-system-ui": "~58.0.6",
-    "expo-web-browser": "~58.0.7",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "react-native": "0.88.0",
-    "react-native-gesture-handler": "~3.3.0",
-    "react-native-reanimated": "4.7.1",
-    "react-native-safe-area-context": "~5.10.1",
-    "react-native-screens": "~4.30.0",
-    "react-native-web": "~0.21.4",
-    "react-native-worklets": "0.13.0"
-  },
-  "devDependencies": {
-    "@types/react": "~19.3.0",
-    "typescript": "~6.0.3"
+  "description": "This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
   },
   "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
+    "test:db": "supabase test db",
+    "test:integration": "vitest run",
+    "test": "npm run test:db && npm run test:integration"
   },
-  "private": true
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fedriki060/DeskDrop.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/fedriki060/DeskDrop/issues"
+  },
+  "homepage": "https://github.com/fedriki060/DeskDrop#readme",
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "supabase": "^2.122.0",
+    "vitest": "^5.0.5"
+  }
 }

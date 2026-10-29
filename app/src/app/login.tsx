@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import BotonPrimario from '../components/BotonPrimario';
@@ -13,15 +13,21 @@ export default function Login() {
   const [usuario, setUsuario] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState('');
+  const [sinVerificar, setSinVerificar] = useState(false);
   const [cargando, setCargando] = useState(false);
+
+  const abrirLegal = (seccion: 'terminos' | 'privacidad') =>
+  router.push({ pathname: '/terminos', params: { seccion } } as Href);
 
   const onIniciar = async () => {
     setError('');
+    setSinVerificar(false);
     setCargando(true);
-    const ok = await iniciarSesion(usuario.trim(), contrasena);
+        const resultado = await iniciarSesion(usuario, contrasena);
     setCargando(false);
-    if (!ok) {
-      setError('Usuario o contraseña incorrectos');
+    if (!resultado.ok) {
+      setError(resultado.mensaje);
+      setSinVerificar(resultado.sinVerificar === true);
     }
   };
 
@@ -30,6 +36,8 @@ export default function Login() {
       <CampoTexto
         placeholder="Correo institucional"
         autoCorrect={false}
+        autoCapitalize="none"
+        keyboardType="email-address"
         value={usuario}
         onChangeText={setUsuario}
       />
@@ -41,6 +49,19 @@ export default function Login() {
         error={error}
       />
 
+            {sinVerificar && (
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/verificar',
+              params: { correo: usuario.trim().toLowerCase(), desde: 'login' },
+            } as Href)
+          }
+        >
+          <Text style={styles.verificar}>Ingresar código de verificación</Text>
+        </Pressable>
+      )}
+
       <BotonPrimario
         titulo={cargando ? 'Ingresando...' : 'Iniciar Sesión'}
         deshabilitado={cargando}
@@ -49,20 +70,28 @@ export default function Login() {
       <BotonPrimario titulo="Crear Cuenta" onPress={() => router.push('/registro')} />
 
       <Text style={styles.terminos}>
-        Al hacer clic en iniciar sesión, aceptas nuestros Términos de servicio y
-        Política de privacidad
+                Al hacer clic en iniciar sesión, aceptas nuestros{' '}
+        <Text style={styles.link} onPress={() => abrirLegal('terminos')}>
+          Términos de servicio
+        </Text>{' '}
+        y{' '}
+        <Text style={styles.link} onPress={() => abrirLegal('privacidad')}>
+          Política de privacidad
+        </Text>
       </Text>
 
       <Pressable onPress={() => router.push('/recuperar')}>
         <Text style={styles.enlace}>¿Se te olvidó tu contraseña? Reinicia aquí</Text>
       </Pressable>
-
-      <Text style={styles.prueba}>Modo prueba: usuario 1 / contraseña 1</Text>
     </PantallaAuth>
   );
 }
 
 const styles = StyleSheet.create({
+    link: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
   terminos: {
     marginTop: spacing.sm,
     textAlign: 'center',
@@ -75,10 +104,10 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.primary,
   },
-  prueba: {
-    marginTop: spacing.xl,
+    verificar: {
+    marginBottom: spacing.md,
     textAlign: 'center',
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
+    fontSize: fontSize.md,
+    color: colors.primary,
   },
 });

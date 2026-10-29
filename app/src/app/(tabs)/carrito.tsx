@@ -1,10 +1,12 @@
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCarrito } from '../../context/CarritoContext';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';
 import { formatearPrecio } from '../../utils/format';
 
 export default function Carrito() {
+  const router = useRouter();
   const { items, total, totalUnidades, cambiarCantidad, quitar } = useCarrito();
 
   if (items.length === 0) {
@@ -68,9 +70,7 @@ export default function Carrito() {
         </View>
         <Pressable
           style={styles.botonPagar}
-          onPress={() =>
-            Alert.alert('Próximamente', 'La confirmación del pedido se construye en T-027.')
-          }
+                    onPress={() => router.push('/resumen')}
         >
           <Text style={styles.textoPagar}>Ir a pagar</Text>
         </Pressable>
