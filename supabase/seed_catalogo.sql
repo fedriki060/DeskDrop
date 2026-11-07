@@ -26,7 +26,7 @@ SET row_security = off;
 --
 
 INSERT INTO "public"."comercios" ("id", "nombre", "descripcion", "horario_apertura", "horario_cierre", "activo", "creado_en", "tipo") VALUES
-	('c0000000-0000-0000-0000-000000000001', 'Cafetería Central Bloque 1', 'Cafetería principal del campus: café, bebidas frías, empanadas, combos y snacks.', '07:00:00', '18:00:00', true, '2026-10-28 02:57:19.133525+00', 'restaurante');
+	('c0000000-0000-0000-0000-000000000001', 'Cafetería Central Bloque 1', 'Cafetería principal del campus: café, bebidas frías, empanadas, combos y snacks.', '07:00:00', '18:00:00', true, '2026-10-28 02:57:19.133525+00', 'restaurante'),
 	('c0000000-0000-0000-0000-000000000002', 'Papelería', 'Útiles escolares, impresiones y materiales de dibujo para estudiantes y docentes.', '07:30:00', '17:00:00', true, '2026-10-29 08:00:00+00', 'utensilios')
 	ON CONFLICT ("id") DO NOTHING;
 --

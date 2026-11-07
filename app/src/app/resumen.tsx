@@ -1,61 +1,92 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AvisoEmergente from '../components/AvisoEmergente';
 import BotonPrimario from '../components/BotonPrimario';
-import { useAuth } from '../context/AuthContext';
 import { useCarrito } from '../context/CarritoContext';
-import { crearPedido, TARIFA_DOMICILIO } from '../services/checkoutService';
+import {
+  crearPedido,
+  ErrorPedido,
+  TARIFA_DOMICILIO,
+  validarCarrito,
+  ValidacionCarrito,
+} from '../services/checkoutService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../theme';
 import { formatearPrecio } from '../utils/format';
 
 export default function Resumen() {
   const router = useRouter();
-  const { usuario } = useAuth();
-  const {
-    items,
-    comercioId,
-    total: subtotal,
-    totalUnidades,
-    puntoEntrega,
-    vaciar,
-  } = useCarrito();
+  const { items, total: subtotalLocal, totalUnidades, puntoEntrega, vaciar } = useCarrito();
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [numeroCreado, setNumeroCreado] = useState<number>();
+  const [codigoCreado, setCodigoCreado] = useState<string>();
+  const [validacion, setValidacion] = useState<ValidacionCarrito>();
+  const [revision, setRevision] = useState(0);
 
-  const totalPagar = subtotal + TARIFA_DOMICILIO;
+  const lineas = useMemo(
+    () => items.map((i) => ({ productoId: i.producto.id, cantidad: i.cantidad })),
+    [items]
+  );
+
+  // Revisa el carrito en la base cada vez que cambia (inventario, un solo comercio,
+  // productos vigentes) y trae la tarifa vigente. Si no hay conexión se muestran los
+  // valores locales: crear_pedido vuelve a validar todo de todas formas.
+  useEffect(() => {
+    if (lineas.length === 0 || codigoCreado) return;
+    let activo = true;
+    validarCarrito(lineas)
+      .then((v) => activo && setValidacion(v))
+      .catch(() => activo && setValidacion(undefined));
+    return () => {
+      activo = false;
+    };
+  }, [lineas, revision, codigoCreado]);
+
+  const erroresPorProducto = new Map(
+    (validacion?.errores ?? [])
+      .filter((e) => e.producto_id)
+      .map((e) => [e.producto_id as string, e])
+  );
+  const erroresGenerales = (validacion?.errores ?? []).filter((e) => !e.producto_id);
+  const carritoInvalido = validacion !== undefined && !validacion.valido;
+
+  const subtotal = validacion?.subtotal ?? subtotalLocal;
+  const tarifa = validacion?.tarifaDomicilio ?? TARIFA_DOMICILIO;
+  const totalPagar = validacion?.total ?? subtotal + tarifa;
 
   const onHacerPedido = async () => {
     if (!puntoEntrega) {
       setError('Elige el lugar de entrega');
       return;
     }
-    if (!comercioId) return;
+    if (carritoInvalido) {
+      setError('Corrige los productos marcados antes de hacer el pedido');
+      return;
+    }
 
     setError('');
     setEnviando(true);
-    const { numero } = await crearPedido({
-      solicitante: usuario ?? 'Solicitante',
-      comercioId,
-      items: items.map((i) => ({
-        nombre: i.producto.nombre,
-        cantidad: i.cantidad,
-        precio: i.producto.precio,
-      })),
-    });
-    setEnviando(false);
-    setNumeroCreado(numero);
+    try {
+      const pedido = await crearPedido({ puntoEntregaId: puntoEntrega.id, lineas });
+      setCodigoCreado(pedido.codigo);
+    } catch (e) {
+      setError(e instanceof ErrorPedido ? e.message : 'No se pudo crear el pedido. Revisa tu conexión.');
+      // Si el problema fue el carrito (alguien compró la última unidad), se vuelve a revisar
+      if (e instanceof ErrorPedido && e.codigo === 'CARRITO_INVALIDO') setRevision((n) => n + 1);
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const onCerrarAviso = () => {
-    setNumeroCreado(undefined);
+    setCodigoCreado(undefined);
+    setValidacion(undefined);
     router.replace('/');
     vaciar();
   };
 
-  if (items.length === 0 && numeroCreado === undefined) {
+  if (items.length === 0 && codigoCreado === undefined) {
     return (
       <View style={styles.vacio}>
         <Text style={styles.vacioTexto}>Tu carrito está vacío</Text>
@@ -85,19 +116,34 @@ export default function Resumen() {
         </View>
 
         <Text style={styles.seccion}>Productos</Text>
-        {items.map((i) => (
-          <View key={i.producto.id} style={styles.producto}>
-            <View style={styles.filaTexto}>
-              <Text style={styles.nombre}>{i.producto.nombre}</Text>
-              <Text style={styles.detalle}>
-                {i.cantidad} × {formatearPrecio(i.producto.precio)}
+        {erroresGenerales.map((e) => (
+          <Text key={e.codigo} style={styles.error}>
+            {e.mensaje}
+          </Text>
+        ))}
+        {items.map((i) => {
+          const problema = erroresPorProducto.get(i.producto.id);
+          return (
+            <View key={i.producto.id} style={styles.producto}>
+              <View style={styles.filaTexto}>
+                <Text style={styles.nombre}>{i.producto.nombre}</Text>
+                <Text style={styles.detalle}>
+                  {i.cantidad} × {formatearPrecio(i.producto.precio)}
+                </Text>
+                {problema && (
+                  <Text style={styles.errorProducto}>
+                    {problema.codigo === 'INVENTARIO_INSUFICIENTE'
+                      ? `Solo quedan ${problema.disponible ?? 0} unidades`
+                      : problema.mensaje}
+                  </Text>
+                )}
+              </View>
+              <Text style={styles.precio}>
+                {formatearPrecio(i.cantidad * i.producto.precio)}
               </Text>
             </View>
-            <Text style={styles.precio}>
-              {formatearPrecio(i.cantidad * i.producto.precio)}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
 
         <View style={styles.totales}>
           <View style={styles.lineaTotal}>
@@ -106,7 +152,7 @@ export default function Resumen() {
           </View>
           <View style={styles.lineaTotal}>
             <Text style={styles.etiquetaTotal}>Tarifa de domicilio</Text>
-            <Text style={styles.valorTotal}>{formatearPrecio(TARIFA_DOMICILIO)}</Text>
+            <Text style={styles.valorTotal}>{formatearPrecio(tarifa)}</Text>
           </View>
           <View style={styles.lineaTotal}>
             <Text style={styles.totalFinal}>Total a pagar</Text>
@@ -118,14 +164,14 @@ export default function Resumen() {
       <View style={styles.pie}>
         <BotonPrimario
           titulo={enviando ? 'Enviando pedido...' : 'Hacer pedido'}
-          deshabilitado={enviando}
+          deshabilitado={enviando || carritoInvalido}
           onPress={onHacerPedido}
         />
       </View>
 
       <AvisoEmergente
-        visible={numeroCreado !== undefined}
-        mensaje={`Pedido #${numeroCreado} creado. Ya lo recibió el comercio.`}
+        visible={codigoCreado !== undefined}
+        mensaje={`Pedido #${codigoCreado} creado. Ya lo recibió el comercio.`}
         onCerrar={onCerrarAviso}
       />
     </View>
@@ -177,6 +223,11 @@ const styles = StyleSheet.create({
   error: {
     marginBottom: spacing.sm,
     fontSize: fontSize.md,
+    color: colors.danger,
+  },
+  errorProducto: {
+    marginTop: spacing.xs,
+    fontSize: fontSize.sm,
     color: colors.danger,
   },
   seccion: {
