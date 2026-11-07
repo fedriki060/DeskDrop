@@ -50,3 +50,25 @@ export function escucharPedido(pedidoId: string, alCambiar: (cambio: CambioPedid
     supabase.removeChannel(canal);
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Confirmar que el pedido llegó (T-040). Solo el solicitante dueño y con el pedido En Camino.
+// ---------------------------------------------------------------------------
+
+const MENSAJES_CONFIRMAR: Record<string, string> = {
+  NO_AUTENTICADO: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido en tu cuenta.',
+  ESTADO_NO_PERMITIDO: 'Solo puedes confirmar el pedido cuando ya va en camino.',
+};
+
+/** Pasa el pedido a Entregado. Si la base lo rechaza, lanza un Error con un mensaje para el usuario. */
+export async function confirmarRecepcion(pedidoId: string): Promise<{ estado: EstadoPedido; entregadoEn: string }> {
+  const { data, error } = await supabase.rpc('confirmar_recepcion', { p_pedido_id: pedidoId });
+  if (error) {
+    const codigo = error.message.split(':')[0].trim();
+    console.warn('[seguimiento] confirmar_recepcion:', error.code, error.message);
+    throw new Error(MENSAJES_CONFIRMAR[codigo] ?? 'No se pudo confirmar la entrega. Intenta de nuevo.');
+  }
+  return { estado: data.estado, entregadoEn: data.entregado_en };
+}
