@@ -179,30 +179,33 @@ export default function Perfil() {
         </View>
       ) : null}
 
-      <View style={styles.bloqueTelefono}>
-        <CampoTexto
-          etiqueta="Celular"
-          value={telefono}
-          onChangeText={(t) => {
-            setTelefono(t);
-            setErrorTelefono(undefined);
-          }}
-          keyboardType="phone-pad"
-          maxLength={14}
-          placeholder="3001234567"
-          error={errorTelefono}
-        />
-        <Text style={styles.ayudaTelefono}>
-          Si haces entregas, el solicitante lo ve solo mientras llevas su pedido.
-        </Text>
-        {telefonoCambio ? (
-          <BotonPrimario
-            titulo={guardandoTelefono ? 'Guardando...' : 'Guardar celular'}
-            deshabilitado={guardandoTelefono}
-            onPress={guardarTelefono}
+      {/* El celular es para el contacto entre solicitante y domiciliario: el comercio no lo necesita */}
+      {perfil?.rol !== 'comercio' && (
+        <View style={styles.bloqueTelefono}>
+          <CampoTexto
+            etiqueta="Celular"
+            value={telefono}
+            onChangeText={(t) => {
+              setTelefono(t);
+              setErrorTelefono(undefined);
+            }}
+            keyboardType="phone-pad"
+            maxLength={14}
+            placeholder="3001234567"
+            error={errorTelefono}
           />
-        ) : null}
-      </View>
+          <Text style={styles.ayudaTelefono}>
+            Si haces entregas, el solicitante lo ve solo mientras llevas su pedido.
+          </Text>
+          {telefonoCambio ? (
+            <BotonPrimario
+              titulo={guardandoTelefono ? 'Guardando...' : 'Guardar celular'}
+              deshabilitado={guardandoTelefono}
+              onPress={guardarTelefono}
+            />
+          ) : null}
+        </View>
+      )}
 
       {puedeSerDomiciliario && (
         <View style={styles.filaModo}>
@@ -244,11 +247,14 @@ export default function Perfil() {
         <Text style={styles.textoBoton}>Cerrar Sesión</Text>
       </Pressable>
 
-      <Pressable onPress={onEliminarCuenta} disabled={eliminando} hitSlop={8}>
-        <Text style={styles.eliminar}>
-          {eliminando ? 'Eliminando cuenta...' : 'Eliminar mi cuenta'}
-        </Text>
-      </Pressable>
+      {/* La cuenta de un comercio la gestiona el equipo de DeskDrop: no se elimina desde la app */}
+      {perfil?.rol !== 'comercio' && (
+        <Pressable onPress={onEliminarCuenta} disabled={eliminando} hitSlop={8}>
+          <Text style={styles.eliminar}>
+            {eliminando ? 'Eliminando cuenta...' : 'Eliminar mi cuenta'}
+          </Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
