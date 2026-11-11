@@ -184,6 +184,7 @@ export default function BandejaPedidos({ comercioId }: Props) {
           <Text style={styles.meta}>
             {item.solicitante} · {formatearHora(item.creadoEn)}
           </Text>
+          {item.repartidor ? <Text style={styles.meta}>Domiciliario: {item.repartidor}</Text> : null}
 
           <View style={styles.productos}>
             {item.items.map((i) => (

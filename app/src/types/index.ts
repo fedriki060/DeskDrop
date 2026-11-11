@@ -54,6 +54,8 @@ export type Pedido = {
   numero: number;
   comercioId: string;
   solicitante: string;
+  /** Primer nombre del domiciliario, cuando ya aceptó el pedido */
+  repartidor?: string;
   estado: EstadoPedido;
   listoParaRecoger: boolean;
   items: ItemPedido[];

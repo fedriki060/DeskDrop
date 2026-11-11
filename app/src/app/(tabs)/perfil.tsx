@@ -103,10 +103,7 @@ export default function Perfil() {
       return;
     }
     if (await tieneEntregasEnCurso()) {
-      Alert.alert(
-        'Tienes entregas en curso',
-        'Termina tus entregas antes de volver a la vista de solicitante.'
-      );
+      Alert.alert('Entrega en curso', 'Termina tu entrega en curso antes de cambiar de vista.');
       return;
     }
     irAModo('solicitante');
@@ -232,8 +229,8 @@ export default function Perfil() {
               Declaro que tengo 18 años o más y acepto estas condiciones.
             </Casilla>
             <BotonPrimario
-              titulo={guardando ? 'Guardando...' : 'Activar'}
-              deshabilitado={guardando}
+              titulo={guardando ? 'Guardando...' : 'Aceptar y continuar'}
+              deshabilitado={guardando || !mayorDeEdad}
               onPress={confirmarDeclaracion}
             />
             <Pressable onPress={() => setDeclaracion(false)} hitSlop={8}>

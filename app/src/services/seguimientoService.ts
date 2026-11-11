@@ -81,7 +81,7 @@ const MENSAJES_ENTREGA: Record<string, string> = {
   CODIGO_INVALIDO: 'El código son 4 dígitos.',
   PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido entre tus entregas.',
   ESTADO_NO_PERMITIDO: 'Solo puedes confirmar un pedido que ya va En Camino.',
-  CODIGO_BLOQUEADO: 'Agotaste los intentos. El pedido se confirmará solo en unos minutos.',
+  CODIGO_BLOQUEADO: 'Demasiados intentos. Pídele al cliente que genere un código nuevo.',
 };
 
 /** El domiciliario asignado digita el código del solicitante para marcar el pedido Entregado. */

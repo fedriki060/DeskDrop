@@ -108,13 +108,19 @@ export async function listarPedidosComercio(comercioId: string): Promise<Pedido[
   const filas = data ?? [];
 
   const nombres = new Map<string, string>();
+  const repartidores = new Map<string, string>();
   if (filas.length > 0) {
     const { data: partes, error: errorNombres } = await supabase.rpc('datos_partes_pedido', {
       p_pedido_ids: filas.map((f) => f.id),
     });
     if (errorNombres) console.warn('[pedidos] nombres:', errorNombres.code, errorNombres.message);
-    for (const p of (partes ?? []) as { pedido_id: string; solicitante: string }[]) {
+    for (const p of (partes ?? []) as {
+      pedido_id: string;
+      solicitante: string;
+      repartidor: string | null;
+    }[]) {
       nombres.set(p.pedido_id, p.solicitante);
+      if (p.repartidor) repartidores.set(p.pedido_id, p.repartidor);
     }
   }
 
@@ -123,6 +129,7 @@ export async function listarPedidosComercio(comercioId: string): Promise<Pedido[
     numero: f.numero,
     comercioId: f.comercio_id,
     solicitante: nombres.get(f.id) || 'Cliente',
+    repartidor: repartidores.get(f.id),
     estado: f.estado,
     listoParaRecoger: f.listo_para_recoger ?? false,
     items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
