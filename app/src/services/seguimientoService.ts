@@ -53,22 +53,62 @@ export function escucharPedido(pedidoId: string, alCambiar: (cambio: CambioPedid
 
 
 // ---------------------------------------------------------------------------
-// Confirmar que el pedido llegó (T-040). Solo el solicitante dueño y con el pedido En Camino.
+// Código de entrega de 4 dígitos (HU-20). El solicitante lo ve; el domiciliario lo digita.
 // ---------------------------------------------------------------------------
 
-const MENSAJES_CONFIRMAR: Record<string, string> = {
+/** Código que el solicitante dueño le dice al domiciliario al recibir. null si no se pudo leer. */
+export async function obtenerCodigoEntrega(pedidoId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('codigos_entrega')
+    .select('codigo')
+    .eq('pedido_id', pedidoId)
+    .maybeSingle();
+  if (error) {
+    console.warn('[seguimiento] código de entrega:', error.code, error.message);
+    return null;
+  }
+  return data?.codigo ?? null;
+}
+
+export type ResultadoConfirmarEntrega =
+  | { ok: true; entregadoEn: string }
+  | { ok: false; mensaje: string; intentosRestantes?: number; bloqueado?: boolean };
+
+const MENSAJES_ENTREGA: Record<string, string> = {
   NO_AUTENTICADO: 'Tu sesión expiró. Vuelve a iniciar sesión.',
-  PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido en tu cuenta.',
-  ESTADO_NO_PERMITIDO: 'Solo puedes confirmar el pedido cuando ya va en camino.',
+  ROL_NO_PERMITIDO: 'Activa la vista de domiciliario desde tu perfil.',
+  CODIGO_INVALIDO: 'El código son 4 dígitos.',
+  PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido entre tus entregas.',
+  ESTADO_NO_PERMITIDO: 'Solo puedes confirmar un pedido que ya va En Camino.',
+  CODIGO_BLOQUEADO: 'Agotaste los intentos. El pedido se confirmará solo en unos minutos.',
 };
 
-/** Pasa el pedido a Entregado. Si la base lo rechaza, lanza un Error con un mensaje para el usuario. */
-export async function confirmarRecepcion(pedidoId: string): Promise<{ estado: EstadoPedido; entregadoEn: string }> {
-  const { data, error } = await supabase.rpc('confirmar_recepcion', { p_pedido_id: pedidoId });
+/** El domiciliario asignado digita el código del solicitante para marcar el pedido Entregado. */
+export async function confirmarEntrega(pedidoId: string, codigo: string): Promise<ResultadoConfirmarEntrega> {
+  const { data, error } = await supabase.rpc('confirmar_entrega', {
+    p_pedido_id: pedidoId,
+    p_codigo: codigo,
+  });
   if (error) {
-    const codigo = error.message.split(':')[0].trim();
-    console.warn('[seguimiento] confirmar_recepcion:', error.code, error.message);
-    throw new Error(MENSAJES_CONFIRMAR[codigo] ?? 'No se pudo confirmar la entrega. Intenta de nuevo.');
+    const clave = error.message.split(':')[0].trim();
+    console.warn('[seguimiento] confirmar_entrega:', error.code, error.message);
+    return {
+      ok: false,
+      mensaje: MENSAJES_ENTREGA[clave] ?? 'No se pudo confirmar la entrega. Intenta de nuevo.',
+      bloqueado: clave === 'CODIGO_BLOQUEADO',
+    };
   }
-  return { estado: data.estado, entregadoEn: data.entregado_en };
+  if (!data.ok) {
+    const restantes: number = data.intentos_restantes;
+    return {
+      ok: false,
+      mensaje:
+        restantes > 0
+          ? `Código incorrecto. Te quedan ${restantes} ${restantes === 1 ? 'intento' : 'intentos'}.`
+          : MENSAJES_ENTREGA.CODIGO_BLOQUEADO,
+      intentosRestantes: restantes,
+      bloqueado: restantes <= 0,
+    };
+  }
+  return { ok: true, entregadoEn: data.entregado_en };
 }

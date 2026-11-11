@@ -135,11 +135,11 @@ select is(public.confirmar_entregas_vencidas(), 0, 'una segunda corrida no confi
 -- ---------------------------------------------------------------------------
 -- Después de la auto-confirmación
 -- ---------------------------------------------------------------------------
-select pg_temp.como('00000000-0000-0000-0000-0000000000a1');
+select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
 select throws_like(
-  $$ select public.confirmar_recepcion('00000000-0000-0000-0000-00000000ad01') $$,
+  $$ select public.confirmar_entrega('00000000-0000-0000-0000-00000000ad01', '0000') $$,
   'ESTADO_NO_PERMITIDO%',
-  'el solicitante ya no puede confirmar un pedido auto-confirmado');
+  'el domiciliario ya no puede confirmar con código un pedido auto-confirmado');
 reset role;
 
 select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
