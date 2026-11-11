@@ -128,6 +128,20 @@ const MENSAJES_CALIFICAR: Record<string, string> = {
   YA_CALIFICADO: 'Ya calificaste este pedido.',
 };
 
+/** Debe coincidir con configuracion.plazo_calificacion_horas (migración calificar_pedido). */
+export const PLAZO_CALIFICAR_HORAS = 24;
+
+/**
+ * true si el pedido ya terminó, sigue dentro del plazo y el solicitante todavía no lo califica.
+ * Sirve para seguir mostrando el pedido en Inicio aunque ya esté Cerrado (el cobro lo cierra).
+ */
+export async function pendienteDeCalificar(p: SeguimientoPedido): Promise<boolean> {
+  if (p.estado !== 'Cerrado' || !p.repartidor) return false;
+  const horas = (Date.now() - new Date(p.actualizadoEn).getTime()) / 3_600_000;
+  if (horas > PLAZO_CALIFICAR_HORAS) return false;
+  return (await obtenerMiCalificacion(p.id)) === null;
+}
+
 /** Estrellas que el solicitante dio a este pedido, o null si todavía no lo califica. */
 export async function obtenerMiCalificacion(pedidoId: string): Promise<number | null> {
   const { data, error } = await supabase
@@ -181,6 +195,8 @@ export type SeguimientoPedido = {
   repartidorCalificacion: number | null;
   items: ItemPedido[];
   creadoEn: string;
+  /** Última actualización del pedido (el plazo para calificar se cuenta desde aquí) */
+  actualizadoEn: string;
   /** Forma y estado del pago (pago físico: efectivo al domiciliario) */
   pago: { metodo: string; estado: string; monto: number } | null;
   /** Si está cancelado: quién lo canceló (solicitante, comercio o sistema) */
@@ -194,6 +210,7 @@ type FilaSeguimiento = {
   listo_para_recoger: boolean | null;
   total: number;
   creado_en: string;
+  actualizado_en: string;
   cancelado_por: string | null;
   comercios: { nombre: string } | null;
   puntos_entrega: { nombre: string } | null;
@@ -206,7 +223,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
   const { data, error } = await supabase
     .from('pedidos')
     .select(
-      'id, numero, estado, listo_para_recoger, total, creado_en, cancelado_por, comercios(nombre), puntos_entrega(nombre), items_pedido(cantidad, productos(nombre)), pagos(metodo, estado, monto)'
+      'id, numero, estado, listo_para_recoger, total, creado_en, actualizado_en, cancelado_por, comercios(nombre), puntos_entrega(nombre), items_pedido(cantidad, productos(nombre)), pagos(metodo, estado, monto)'
     )
     .eq('solicitante_id', userId)
     .order('creado_en', { ascending: false })
@@ -250,6 +267,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
     repartidorCalificacion,
     items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
     creadoEn: f.creado_en,
+    actualizadoEn: f.actualizado_en,
     pago: Array.isArray(f.pagos) ? (f.pagos[0] ?? null) : f.pagos,
     canceladoPor: f.cancelado_por,
   };

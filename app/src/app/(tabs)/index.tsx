@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   escucharMisPedidos,
   obtenerUltimoPedido,
+  pendienteDeCalificar,
   SeguimientoPedido as Pedido,
 } from '../../services/seguimientoService';
 import { colors, fontSize, spacing } from '../../theme';
@@ -21,6 +22,8 @@ export default function Inicio() {
   const router = useRouter();
   const userId = perfil?.id;
   const [pedido, setPedido] = useState<Pedido | null>();
+  // Pedido ya Cerrado (el cobro lo cierra) que todavía espera la calificación del solicitante
+  const [porCalificar, setPorCalificar] = useState(false);
   const [error, setError] = useState<string>();
   const [refrescando, setRefrescando] = useState(false);
   const vueltas = useVueltaAPrimerPlano();
@@ -28,7 +31,9 @@ export default function Inicio() {
   const cargar = useCallback(async () => {
     if (!userId) return;
     try {
-      setPedido(await obtenerUltimoPedido(userId));
+      const ultimo = await obtenerUltimoPedido(userId);
+      setPorCalificar(ultimo ? await pendienteDeCalificar(ultimo) : false);
+      setPedido(ultimo);
       setError(undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cargar tu pedido.');
@@ -67,8 +72,13 @@ export default function Inicio() {
           <View style={styles.centro}>
             <ActivityIndicator color={colors.primary} />
           </View>
-        ) : pedido && ESTADOS_EN_CURSO.includes(pedido.estado) ? (
-          <SeguimientoPedido pedido={pedido} alCambiar={cargar} />
+        ) : pedido && (ESTADOS_EN_CURSO.includes(pedido.estado) || porCalificar) ? (
+          <View>
+            <SeguimientoPedido pedido={pedido} alCambiar={cargar} />
+            {porCalificar ? (
+              <BotonPrimario titulo="Hacer otro pedido" onPress={() => router.navigate('/tiendas')} />
+            ) : null}
+          </View>
         ) : !error ? (
           <View>
             <Text style={styles.vacio}>No tienes un pedido en curso.</Text>
