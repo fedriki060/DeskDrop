@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { CarritoProvider } from '../context/CarritoContext';
+import { ComercioProvider } from '../context/ComercioContext';
 import { colors, fontSize, fontWeight } from '../theme';
 
 const headerCatalogo = {
@@ -68,8 +69,10 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <CarritoProvider>
-        <StatusBar style="dark" />
-        <Rutas />
+        <ComercioProvider>
+          <StatusBar style="dark" />
+          <Rutas />
+        </ComercioProvider>
       </CarritoProvider>
     </AuthProvider>
   );

@@ -15,13 +15,13 @@ type FilaPedido = {
   items_pedido: { cantidad: number; productos: { nombre: string } | null }[];
 };
 
-export type ComercioDelUsuario = { id: string; nombre: string };
+export type ComercioDelUsuario = { id: string; nombre: string; activo: boolean };
 
 /** Comercio que administra el usuario con sesión (null si no administra ninguno). */
 export async function obtenerMiComercio(userId: string): Promise<ComercioDelUsuario | null> {
   const { data, error } = await supabase
     .from('comercios')
-    .select('id, nombre')
+    .select('id, nombre, activo')
     .eq('administrador_id', userId)
     .limit(1)
     .maybeSingle();
@@ -29,7 +29,7 @@ export async function obtenerMiComercio(userId: string): Promise<ComercioDelUsua
     console.warn('[pedidos] comercio:', error.code, error.message);
     return null;
   }
-  return data ? { id: data.id, nombre: data.nombre } : null;
+  return data ? { id: data.id, nombre: data.nombre, activo: data.activo !== false } : null;
 }
 
 /** Pedidos del comercio, del más reciente al más antiguo. Lanza Error si no se pudieron leer. */
@@ -110,4 +110,36 @@ export function escucharPedidosComercio(comercioId: string, alCambiar: () => voi
   return () => {
     supabase.removeChannel(canal);
   };
+}
+
+/** Pedidos nuevos: ya llegaron al comercio y aún no los marcó listos para recoger. */
+export async function contarPedidosNuevos(comercioId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('pedidos')
+    .select('id', { count: 'exact', head: true })
+    .eq('comercio_id', comercioId)
+    .in('estado', ['Creado', 'Asignado'])
+    .eq('listo_para_recoger', false);
+  if (error) {
+    console.warn('[pedidos] contar nuevos:', error.code, error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
+ * Abre o cierra el comercio ("Recibiendo pedidos"). Cerrado, no sale en el catálogo y no recibe
+ * pedidos nuevos; los que ya tiene siguen su curso. La RLS solo deja al dueño cambiarlo.
+ */
+export async function cambiarRecibiendoPedidos(comercioId: string, recibiendo: boolean): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('comercios')
+    .update({ activo: recibiendo })
+    .eq('id', comercioId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    console.warn('[pedidos] recibiendo pedidos:', error?.code, error?.message);
+    return false;
+  }
+  return true;
 }

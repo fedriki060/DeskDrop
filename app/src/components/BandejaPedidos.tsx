@@ -6,9 +6,12 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
+import { useComercio } from '../context/ComercioContext';
+import { useVueltaAPrimerPlano } from '../hooks/useVueltaAPrimerPlano';
 import {
   escucharPedidosComercio,
   listarPedidosComercio,
@@ -32,11 +35,17 @@ type Props = {
   comercioId: string;
 };
 
+type Pestana = 'activos' | 'historial';
+const ESTADOS_ACTIVOS: EstadoPedido[] = ['Creado', 'Asignado', 'En Camino', 'Entregado'];
+
 export default function BandejaPedidos({ comercioId }: Props) {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string>();
+  const [pestana, setPestana] = useState<Pestana>('activos');
+  const { comercio, cambiarRecibiendo } = useComercio();
+  const vueltas = useVueltaAPrimerPlano();
 
   const cargar = useCallback(async () => {
     try {
@@ -49,10 +58,10 @@ export default function BandejaPedidos({ comercioId }: Props) {
 
   useEffect(() => {
     cargar().finally(() => setCargando(false));
-  }, [cargar]);
+  }, [cargar, vueltas]);
 
   // Pedido nuevo o cambio de estado: se recarga la lista sin que el comercio tenga que deslizar
-  useEffect(() => escucharPedidosComercio(comercioId, cargar), [comercioId, cargar]);
+  useEffect(() => escucharPedidosComercio(comercioId, cargar), [comercioId, cargar, vueltas]);
 
   const onRefrescar = async () => {
     setRefrescando(true);
@@ -81,6 +90,14 @@ export default function BandejaPedidos({ comercioId }: Props) {
     );
   };
 
+  const onCambiarRecibiendo = async (recibiendo: boolean) => {
+    if (!(await cambiarRecibiendo(recibiendo))) {
+      Alert.alert('No se pudo cambiar', 'Revisa tu conexión e inténtalo de nuevo.');
+    }
+  };
+
+  const visibles = pedidos.filter((p) => ESTADOS_ACTIVOS.includes(p.estado) === (pestana === 'activos'));
+
   if (cargando) {
     return (
       <View style={styles.centro}>
@@ -91,12 +108,52 @@ export default function BandejaPedidos({ comercioId }: Props) {
 
   return (
     <FlatList
-      data={pedidos}
+      data={visibles}
       keyExtractor={(p) => p.id}
       contentContainerStyle={styles.lista}
       refreshControl={<RefreshControl refreshing={refrescando} onRefresh={onRefrescar} />}
-      ListHeaderComponent={error ? <Text style={styles.error}>{error}</Text> : undefined}
-      ListEmptyComponent={error ? undefined : <Text style={styles.vacio}>Aún no hay pedidos</Text>}
+      ListHeaderComponent={
+        <View>
+          {comercio ? (
+            <View style={styles.filaRecibiendo}>
+              <View style={styles.textoRecibiendo}>
+                <Text style={styles.tituloRecibiendo}>Recibiendo pedidos</Text>
+                <Text style={styles.ayudaRecibiendo}>
+                  {comercio.activo
+                    ? 'Tu tienda aparece en el catálogo.'
+                    : 'Cerrada: no aparece ni recibe pedidos nuevos.'}
+                </Text>
+              </View>
+              <Switch
+                value={comercio.activo}
+                onValueChange={onCambiarRecibiendo}
+                trackColor={{ false: colors.border, true: colors.primary }}
+              />
+            </View>
+          ) : null}
+          <View style={styles.pestanas}>
+            {(['activos', 'historial'] as Pestana[]).map((p) => (
+              <Pressable
+                key={p}
+                style={[styles.pestana, pestana === p && styles.pestanaActiva]}
+                onPress={() => setPestana(p)}
+              >
+                <Text style={[styles.textoPestana, pestana === p && styles.textoPestanaActiva]}>
+                  {p === 'activos' ? 'Activos' : 'Historial'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+        </View>
+      }
+      ListEmptyComponent={
+        error ? undefined : (
+          <Text style={styles.vacio}>
+            {pestana === 'activos' ? 'No hay pedidos activos' : 'Aún no hay pedidos terminados'}
+          </Text>
+        )
+      }
       renderItem={({ item }) => (
         <View style={styles.tarjeta}>
           <View style={styles.encabezado}>
@@ -150,6 +207,30 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     color: colors.textMuted,
   },
+  filaRecibiendo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.sm,
+  },
+  textoRecibiendo: { flex: 1, marginRight: spacing.sm },
+  tituloRecibiendo: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.primary },
+  ayudaRecibiendo: { marginTop: spacing.xs, fontSize: fontSize.sm, color: colors.textMuted },
+  pestanas: { flexDirection: 'row', marginBottom: spacing.md },
+  pestana: {
+    flex: 1,
+    padding: spacing.sm,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.border,
+  },
+  pestanaActiva: { borderBottomColor: colors.primary },
+  textoPestana: { fontSize: fontSize.md, color: colors.textMuted },
+  textoPestanaActiva: { fontWeight: fontWeight.bold, color: colors.primary },
   error: {
     marginBottom: spacing.md,
     textAlign: 'center',

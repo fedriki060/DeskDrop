@@ -1,39 +1,24 @@
-import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import BandejaPedidos from '../../components/BandejaPedidos';
 import ProtegidoPorRol from '../../components/ProtegidoPorRol';
-import { useAuth } from '../../context/AuthContext';
-import { obtenerMiComercio } from '../../services/pedidosService';
+import { useComercio } from '../../context/ComercioContext';
 import { colors, fontSize, spacing } from '../../theme';
 
 export default function Bandeja() {
-  const { perfil } = useAuth();
-  const [comercioId, setComercioId] = useState<string | null>();
-
-  // El comercio es el que administra el usuario con sesión
-  useEffect(() => {
-    if (!perfil) return;
-    let vigente = true;
-    obtenerMiComercio(perfil.id).then((c) => {
-      if (vigente) setComercioId(c?.id ?? null);
-    });
-    return () => {
-      vigente = false;
-    };
-  }, [perfil]);
+  const { comercio } = useComercio();
 
   return (
     <ProtegidoPorRol rol="comercio">
-      {comercioId === undefined ? (
+      {comercio === undefined ? (
         <View style={styles.centro}>
           <ActivityIndicator color={colors.primary} />
         </View>
-      ) : comercioId === null ? (
+      ) : comercio === null ? (
         <View style={styles.centro}>
           <Text style={styles.texto}>Tu cuenta aún no tiene un comercio asignado.</Text>
         </View>
       ) : (
-        <BandejaPedidos comercioId={comercioId} />
+        <BandejaPedidos comercioId={comercio.id} />
       )}
     </ProtegidoPorRol>
   );

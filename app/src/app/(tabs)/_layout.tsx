@@ -4,6 +4,7 @@ import { ComponentProps } from 'react';
 import { ColorValue } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useCarrito } from '../../context/CarritoContext';
+import { useComercio } from '../../context/ComercioContext';
 import { colors, fontSize, fontWeight } from '../../theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -17,6 +18,7 @@ const tabIcon =
 export default function TabsLayout() {
   const { totalUnidades } = useCarrito();
   const { rolActivo } = useAuth();
+  const { nuevos } = useComercio();
 
   // href: null oculta la pestaña de la barra
   const visibleSi = (condicion: boolean) => (condicion ? undefined : null);
@@ -98,6 +100,12 @@ export default function TabsLayout() {
           title: 'Pedidos',
           tabBarIcon: tabIcon('receipt-outline'),
           href: visibleSi(esComercio),
+          tabBarBadge: nuevos > 0 ? (nuevos > 99 ? '99+' : nuevos) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.danger,
+            color: colors.white,
+            fontSize: fontSize.sm,
+          },
         }}
       />
       <Tabs.Screen
