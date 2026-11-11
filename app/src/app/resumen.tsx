@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AvisoEmergente from '../components/AvisoEmergente';
@@ -20,7 +20,7 @@ export default function Resumen() {
   const { items, total: subtotalLocal, totalUnidades, puntoEntrega, vaciar } = useCarrito();
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [codigoCreado, setCodigoCreado] = useState<string>();
+  const [pedidoCreado, setPedidoCreado] = useState<{ id: string; codigo: string }>();
   const [validacion, setValidacion] = useState<ValidacionCarrito>();
   const [revision, setRevision] = useState(0);
 
@@ -33,7 +33,7 @@ export default function Resumen() {
   // productos vigentes) y trae la tarifa vigente. Si no hay conexión se muestran los
   // valores locales: crear_pedido vuelve a validar todo de todas formas.
   useEffect(() => {
-    if (lineas.length === 0 || codigoCreado) return;
+    if (lineas.length === 0 || pedidoCreado) return;
     let activo = true;
     validarCarrito(lineas)
       .then((v) => activo && setValidacion(v))
@@ -41,7 +41,7 @@ export default function Resumen() {
     return () => {
       activo = false;
     };
-  }, [lineas, revision, codigoCreado]);
+  }, [lineas, revision, pedidoCreado]);
 
   const erroresPorProducto = new Map(
     (validacion?.errores ?? [])
@@ -69,7 +69,7 @@ export default function Resumen() {
     setEnviando(true);
     try {
       const pedido = await crearPedido({ puntoEntregaId: puntoEntrega.id, lineas });
-      setCodigoCreado(pedido.codigo);
+      setPedidoCreado({ id: pedido.pedidoId, codigo: pedido.codigo });
     } catch (e) {
       setError(e instanceof ErrorPedido ? e.message : 'No se pudo crear el pedido. Revisa tu conexión.');
       // Si el problema fue el carrito (alguien compró la última unidad), se vuelve a revisar
@@ -79,14 +79,20 @@ export default function Resumen() {
     }
   };
 
+  // Al cerrar el aviso se abre el seguimiento del pedido recién creado (T-047)
   const onCerrarAviso = () => {
-    setCodigoCreado(undefined);
+    const id = pedidoCreado?.id;
+    setPedidoCreado(undefined);
     setValidacion(undefined);
-    router.replace('/');
+    if (id) {
+      router.replace({ pathname: '/pedido/[id]', params: { id } } as Href);
+    } else {
+      router.replace('/');
+    }
     vaciar();
   };
 
-  if (items.length === 0 && codigoCreado === undefined) {
+  if (items.length === 0 && pedidoCreado === undefined) {
     return (
       <View style={styles.vacio}>
         <Text style={styles.vacioTexto}>Tu carrito está vacío</Text>
@@ -170,8 +176,8 @@ export default function Resumen() {
       </View>
 
       <AvisoEmergente
-        visible={codigoCreado !== undefined}
-        mensaje={`Pedido #${codigoCreado} creado. Ya lo recibió el comercio.`}
+        visible={pedidoCreado !== undefined}
+        mensaje={`Pedido #${pedidoCreado?.codigo} creado. Ya lo recibió el comercio.`}
         onCerrar={onCerrarAviso}
       />
     </View>

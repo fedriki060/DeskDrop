@@ -52,6 +52,10 @@ function Rutas() {
           name="ubicacion"
           options={{ ...headerCatalogo, title: 'Lugar de entrega' }}
         />
+        <Stack.Screen
+          name="pedido/[id]"
+          options={{ ...headerCatalogo, title: 'Seguimiento del pedido' }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!sesion}>
         <Stack.Screen name="login" />
