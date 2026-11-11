@@ -103,3 +103,78 @@ export function escucharEntregas(alCambiar: () => void): () => void {
     supabase.removeChannel(canal);
   };
 }
+
+// ---------------------------------------------------------------------------
+// Mis entregas y ganancias (HU-26)
+// ---------------------------------------------------------------------------
+
+// Reglas del piloto (docs/reglas_negocio_piloto.md): de la tarifa de domicilio, 80 % es del
+// domiciliario y 20 % de la plataforma. Es una estimación: no hay pagos al domiciliario en la app.
+export const PORCENTAJE_GANANCIA_DOMICILIARIO = 0.8;
+
+export type EntregaCerrada = {
+  id: string;
+  numero: number;
+  fecha: string;
+  comercio: string;
+  puntoEntrega: string;
+  total: number;
+  tarifa: number;
+  /** Efectivo que cobró en este pedido (0 si el pago no figura como cobrado) */
+  cobrado: number;
+};
+
+export type ResumenEntregas = {
+  entregas: EntregaCerrada[];
+  gananciaEstimada: number;
+  efectivoCobrado: number;
+};
+
+type FilaCerrada = {
+  id: string;
+  numero: number;
+  total: number;
+  tarifa_domicilio: number;
+  actualizado_en: string;
+  comercios: { nombre: string } | null;
+  puntos_entrega: { nombre: string } | null;
+  pagos: { estado: string; monto: number }[] | { estado: string; monto: number } | null;
+};
+
+/** Pedidos Cerrados del domiciliario, del más reciente al más antiguo, con sus totales. */
+export async function obtenerMisEntregas(userId: string): Promise<ResumenEntregas> {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select(
+      'id, numero, total, tarifa_domicilio, actualizado_en, comercios(nombre), puntos_entrega(nombre), pagos(estado, monto)'
+    )
+    .eq('repartidor_id', userId)
+    .eq('estado', 'Cerrado')
+    .order('actualizado_en', { ascending: false })
+    .limit(200)
+    .returns<FilaCerrada[]>();
+  if (error) {
+    console.warn('[entregas] mis entregas:', error.code, error.message);
+    throw new Error('No se pudieron cargar tus entregas. Revisa tu conexión.');
+  }
+  const entregas = (data ?? []).map((f) => {
+    const pago = Array.isArray(f.pagos) ? f.pagos[0] : f.pagos;
+    return {
+      id: f.id,
+      numero: f.numero,
+      fecha: f.actualizado_en,
+      comercio: f.comercios?.nombre ?? 'Comercio',
+      puntoEntrega: f.puntos_entrega?.nombre ?? 'Punto de entrega',
+      total: Number(f.total),
+      tarifa: Number(f.tarifa_domicilio),
+      cobrado: pago?.estado === 'cobrado' ? Number(pago.monto) : 0,
+    };
+  });
+  return {
+    entregas,
+    gananciaEstimada: Math.round(
+      entregas.reduce((suma, e) => suma + e.tarifa * PORCENTAJE_GANANCIA_DOMICILIARIO, 0)
+    ),
+    efectivoCobrado: entregas.reduce((suma, e) => suma + e.cobrado, 0),
+  };
+}

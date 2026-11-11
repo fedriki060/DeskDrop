@@ -50,9 +50,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="historial"
         options={{
-          title: 'Historial',
+          title: esDomiciliario ? 'Mis entregas' : 'Historial',
           tabBarIcon: tabIcon('time-outline'),
-          href: visibleSi(esSolicitante),
+          href: visibleSi(esSolicitante || esDomiciliario),
         }}
       />
       <Tabs.Screen

@@ -85,7 +85,7 @@ export default function ListaEntregas() {
   );
 
   const secciones = [
-    { titulo: 'Mis entregas', data: entregas.filter((e) => e.esMia) },
+    { titulo: 'En curso', data: entregas.filter((e) => e.esMia) },
     { titulo: 'Disponibles', data: entregas.filter((e) => !e.esMia) },
   ].filter((s) => s.data.length > 0);
 
