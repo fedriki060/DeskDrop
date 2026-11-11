@@ -74,6 +74,17 @@ export async function listarEntregas(userId: string): Promise<Entrega[]> {
     console.warn('[entregas] listar:', error.code, error.message);
     throw new Error('No se pudieron cargar los pedidos. Revisa tu conexión.');
   }
+  // Nombre y celular del solicitante, solo de los pedidos que este domiciliario ya tomó
+  const mias = (data ?? []).filter((f) => f.repartidor_id === userId).map((f) => f.id);
+  const contacto = new Map<string, { solicitante: string; telefono: string | null }>();
+  if (mias.length > 0) {
+    const { data: partes, error: errorPartes } = await supabase.rpc('datos_partes_pedido', { p_pedido_ids: mias });
+    if (errorPartes) console.warn('[entregas] contacto:', errorPartes.code, errorPartes.message);
+    for (const p of (partes ?? []) as { pedido_id: string; solicitante: string; solicitante_telefono: string | null }[]) {
+      contacto.set(p.pedido_id, { solicitante: p.solicitante, telefono: p.solicitante_telefono });
+    }
+  }
+
   return (data ?? []).map((f) => ({
     id: f.id,
     numero: f.numero,
@@ -86,6 +97,8 @@ export async function listarEntregas(userId: string): Promise<Entrega[]> {
     notas: f.notas_entrega,
     items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
     esMia: f.repartidor_id === userId,
+    solicitante: contacto.get(f.id)?.solicitante || null,
+    solicitanteTelefono: contacto.get(f.id)?.telefono || null,
   }));
 }
 

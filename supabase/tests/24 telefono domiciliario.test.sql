@@ -38,7 +38,7 @@ begin
   set local role authenticated;
 end $f$;
 
-select plan(11);
+select plan(14);
 
 -- Edición del teléfono: cada usuario solo el suyo, con formato de celular colombiano
 select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
@@ -55,6 +55,8 @@ select is((select count(*)::int from public.perfiles where id = '00000000-0000-0
 select is((select repartidor_telefono from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
   null, 'el propio domiciliario no recibe teléfono en datos_partes_pedido');
 reset role;
+
+update public.perfiles set telefono = '3101112233' where id = '00000000-0000-0000-0000-0000000000a1';
 
 -- Solicitante dueño: ve el contacto mientras el pedido está en camino
 select pg_temp.como('00000000-0000-0000-0000-0000000000a1');
@@ -74,6 +76,20 @@ reset role;
 select pg_temp.como('00000000-0000-0000-0000-0000000000a2');
 select is((select count(*)::int from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
   0, 'otro solicitante no obtiene datos del pedido');
+reset role;
+
+-- El domiciliario asignado ve el celular del solicitante; el comercio y otros no
+select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
+select is((select solicitante_telefono from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
+  '3101112233', 'el domiciliario asignado ve el celular del solicitante');
+reset role;
+select pg_temp.como('00000000-0000-0000-0000-0000000000c1');
+select is((select solicitante_telefono from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
+  null, 'el comercio no recibe el celular del solicitante');
+reset role;
+select pg_temp.como('00000000-0000-0000-0000-0000000000a1');
+select is((select solicitante_telefono from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
+  null, 'el solicitante no recibe su propio celular (no hace falta)');
 reset role;
 
 -- Entregado: el contacto ya no se expone

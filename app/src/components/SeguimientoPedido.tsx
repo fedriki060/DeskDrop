@@ -120,6 +120,12 @@ export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
         </Pressable>
       ) : null}
 
+      {!pedido.repartidorTelefono &&
+      pedido.repartidor &&
+      (pedido.estado === 'Asignado' || pedido.estado === 'En Camino') ? (
+        <Text style={styles.sinContacto}>{pedido.repartidor} no registró su celular.</Text>
+      ) : null}
+
       <View style={styles.detalle}>
         <Text style={styles.meta}>Comercio: {pedido.comercio}</Text>
         <Text style={styles.meta}>Entrega en: {pedido.puntoEntrega}</Text>
@@ -148,6 +154,7 @@ export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
 }
 
 const styles = StyleSheet.create({
+  sinContacto: { marginBottom: spacing.md, fontSize: fontSize.md, color: colors.textMuted },
   contacto: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   textoContacto: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.primary },
   encabezado: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },

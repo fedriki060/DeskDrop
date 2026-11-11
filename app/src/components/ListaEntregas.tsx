@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   RefreshControl,
   SectionList,
@@ -95,7 +96,16 @@ export default function ListaEntregas() {
       keyExtractor={(e) => e.id}
       contentContainerStyle={styles.lista}
       refreshControl={<RefreshControl refreshing={refrescando} onRefresh={onRefrescar} />}
-      ListHeaderComponent={error ? <Text style={styles.error}>{error}</Text> : undefined}
+      ListHeaderComponent={
+        <View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {perfil && !perfil.telefono ? (
+            <Text style={styles.aviso}>
+              Registra tu celular en Perfil para que el solicitante pueda contactarte al entregar.
+            </Text>
+          ) : null}
+        </View>
+      }
       ListEmptyComponent={
         error ? undefined : <Text style={styles.vacio}>No hay pedidos por ahora. Se actualiza solo.</Text>
       }
@@ -112,6 +122,20 @@ export default function ListaEntregas() {
             {item.indicaciones ? ` (${item.indicaciones})` : ''}
           </Text>
           {item.notas ? <Text style={styles.meta}>Nota: {item.notas}</Text> : null}
+          {item.esMia && item.solicitante ? (
+            item.solicitanteTelefono ? (
+              <Pressable
+                onPress={() => Linking.openURL(`tel:${item.solicitanteTelefono}`).catch(() => {})}
+                hitSlop={8}
+              >
+                <Text style={styles.contacto}>
+                  Llamar a {item.solicitante}: {item.solicitanteTelefono}
+                </Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.meta}>{item.solicitante} no registró su celular.</Text>
+            )
+          ) : null}
           <View style={styles.productos}>
             {item.items.map((i, n) => (
               <Text key={`${i.nombre}-${n}`} style={styles.producto}>
@@ -172,6 +196,8 @@ function Boton({ titulo, onPress, deshabilitado }: { titulo: string; onPress: ()
 }
 
 const styles = StyleSheet.create({
+  contacto: { marginTop: spacing.xs, fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.primary },
+  aviso: { marginBottom: spacing.md, fontSize: fontSize.md, color: colors.textMuted },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   lista: { padding: spacing.md, backgroundColor: colors.background },
   error: { marginBottom: spacing.md, textAlign: 'center', fontSize: fontSize.md, color: colors.danger },

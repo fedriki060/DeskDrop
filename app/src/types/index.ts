@@ -73,4 +73,7 @@ export type Entrega = {
   items: ItemPedido[];
   /** true si ya lo tiene asignado este domiciliario; false si está disponible para aceptar */
   esMia: boolean;
+  /** Primer nombre y celular del solicitante: solo en los pedidos que ya tomó este domiciliario */
+  solicitante: string | null;
+  solicitanteTelefono: string | null;
 };
