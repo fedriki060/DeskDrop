@@ -27,6 +27,7 @@
 | 8 | Domiciliario | Escribir el código correcto | Pedido **Entregado** |
 | 9 | Domiciliario | "Ya cobré" (efectivo) | Pago registrado como cobrado |
 | 10 | Domiciliario | Pestaña "Mis entregas" | Total estimado ganado y efectivo cobrado |
+| 11 | Solicitante | En Inicio, calificar al domiciliario (1 a 5 estrellas y comentario) | "¡Gracias por calificar!"; la próxima vez que pida, verá su promedio con el contacto |
 
 ## Casos extra para mostrar
 

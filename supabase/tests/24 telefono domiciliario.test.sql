@@ -60,8 +60,8 @@ reset role;
 select pg_temp.como('00000000-0000-0000-0000-0000000000a1');
 select is((select repartidor_telefono from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
   '3001234567', 'el solicitante ve el teléfono del domiciliario con el pedido En Camino');
-select ok((select repartidor_calificacion is not null from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
-  'el solicitante recibe la calificación del domiciliario');
+select is((select repartidor_calificacion from public.datos_partes_pedido(array['00000000-0000-0000-0000-00000000ca01']::uuid[])),
+  null, 'sin calificaciones, la calificación del domiciliario sale vacía');
 reset role;
 
 -- El comercio no recibe el teléfono

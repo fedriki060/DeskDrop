@@ -6,6 +6,7 @@ import { SeguimientoPedido as Pedido } from '../services/seguimientoService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../theme';
 import { EstadoPedido } from '../types';
 import { formatearPrecio } from '../utils/format';
+import CalificarPedido from './CalificarPedido';
 import CodigoEntrega from './CodigoEntrega';
 
 const PASOS: { estado: EstadoPedido; titulo: string }[] = [
@@ -101,6 +102,10 @@ export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
         <CodigoEntrega pedidoId={pedido.id} />
       )}
 
+      {(pedido.estado === 'Entregado' || pedido.estado === 'Cerrado') && pedido.repartidor ? (
+        <CalificarPedido pedidoId={pedido.id} repartidor={pedido.repartidor} />
+      ) : null}
+
       {pedido.repartidorTelefono && (pedido.estado === 'Asignado' || pedido.estado === 'En Camino') ? (
         <Pressable
           style={styles.contacto}
@@ -110,6 +115,7 @@ export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
           <Ionicons name="call-outline" size={20} color={colors.primary} />
           <Text style={styles.textoContacto}>
             Llamar a {pedido.repartidor ?? 'tu domiciliario'}: {pedido.repartidorTelefono}
+            {pedido.repartidorCalificacion != null ? `  ★ ${pedido.repartidorCalificacion.toFixed(1)}` : ''}
           </Text>
         </Pressable>
       ) : null}

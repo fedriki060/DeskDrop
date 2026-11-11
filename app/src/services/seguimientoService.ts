@@ -115,6 +115,53 @@ export async function confirmarEntrega(pedidoId: string, codigo: string): Promis
 }
 
 // ---------------------------------------------------------------------------
+// Calificación del domiciliario (HU-15)
+// ---------------------------------------------------------------------------
+
+const MENSAJES_CALIFICAR: Record<string, string> = {
+  NO_AUTENTICADO: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  ESTRELLAS_INVALIDAS: 'Elige de 1 a 5 estrellas.',
+  COMENTARIO_DEMASIADO_LARGO: 'El comentario puede tener máximo 300 caracteres.',
+  PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido.',
+  ESTADO_NO_PERMITIDO: 'Solo puedes calificar un pedido ya entregado.',
+  PLAZO_VENCIDO: 'Ya pasó el plazo para calificar este pedido.',
+  YA_CALIFICADO: 'Ya calificaste este pedido.',
+};
+
+/** Estrellas que el solicitante dio a este pedido, o null si todavía no lo califica. */
+export async function obtenerMiCalificacion(pedidoId: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('calificaciones')
+    .select('estrellas')
+    .eq('pedido_id', pedidoId)
+    .maybeSingle();
+  if (error) {
+    console.warn('[seguimiento] mi calificación:', error.code, error.message);
+    return null;
+  }
+  return data?.estrellas ?? null;
+}
+
+/** Califica al domiciliario de un pedido entregado (1 a 5 estrellas, comentario opcional). */
+export async function calificarPedido(
+  pedidoId: string,
+  estrellas: number,
+  comentario?: string
+): Promise<{ ok: true } | { ok: false; mensaje: string }> {
+  const { error } = await supabase.rpc('calificar_pedido', {
+    p_pedido_id: pedidoId,
+    p_estrellas: estrellas,
+    p_comentario: comentario?.trim() || null,
+  });
+  if (error) {
+    const codigo = error.message.split(':')[0].trim();
+    console.warn('[seguimiento] calificar:', error.code, error.message);
+    return { ok: false, mensaje: MENSAJES_CALIFICAR[codigo] ?? 'No se pudo enviar tu calificación. Intenta de nuevo.' };
+  }
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Último pedido del solicitante, con lo que se muestra en el seguimiento (HU-11).
 // ---------------------------------------------------------------------------
 
@@ -130,6 +177,8 @@ export type SeguimientoPedido = {
   repartidor: string | null;
   /** Celular del domiciliario: solo el solicitante, mientras el pedido está Asignado o En Camino */
   repartidorTelefono: string | null;
+  /** Promedio de estrellas del domiciliario (null si todavía no tiene calificaciones) */
+  repartidorCalificacion: number | null;
   items: ItemPedido[];
   creadoEn: string;
   /** Forma y estado del pago (pago físico: efectivo al domiciliario) */
@@ -172,14 +221,20 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
 
   let repartidor: string | null = null;
   let repartidorTelefono: string | null = null;
+  let repartidorCalificacion: number | null = null;
   const { data: partes, error: errorPartes } = await supabase.rpc('datos_partes_pedido', {
     p_pedido_ids: [f.id],
   });
   if (errorPartes) console.warn('[seguimiento] nombres:', errorPartes.code, errorPartes.message);
   else {
-    const parte = (partes as { repartidor: string | null; repartidor_telefono: string | null }[] | null)?.[0];
+    const parte = (
+      partes as
+        | { repartidor: string | null; repartidor_telefono: string | null; repartidor_calificacion: number | null }[]
+        | null
+    )?.[0];
     repartidor = parte?.repartidor || null;
     repartidorTelefono = parte?.repartidor_telefono || null;
+    repartidorCalificacion = parte?.repartidor_calificacion != null ? Number(parte.repartidor_calificacion) : null;
   }
 
   return {
@@ -192,6 +247,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
     puntoEntrega: f.puntos_entrega?.nombre ?? 'Punto de entrega',
     repartidor,
     repartidorTelefono,
+    repartidorCalificacion,
     items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
     creadoEn: f.creado_en,
     pago: Array.isArray(f.pagos) ? (f.pagos[0] ?? null) : f.pagos,
