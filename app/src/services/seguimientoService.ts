@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { EstadoPedido } from '../types';
+import { EstadoPedido, ItemPedido } from '../types';
 
 // Seguimiento en vivo con Supabase Realtime (T-046). La base solo envía los cambios de los
 // pedidos que la RLS deja ver al usuario (migración realtime_pedidos).
@@ -111,4 +111,105 @@ export async function confirmarEntrega(pedidoId: string, codigo: string): Promis
     };
   }
   return { ok: true, entregadoEn: data.entregado_en };
+}
+
+// ---------------------------------------------------------------------------
+// Último pedido del solicitante, con lo que se muestra en el seguimiento (HU-11).
+// ---------------------------------------------------------------------------
+
+export type SeguimientoPedido = {
+  id: string;
+  numero: number;
+  estado: EstadoPedido;
+  listoParaRecoger: boolean;
+  total: number;
+  comercio: string;
+  puntoEntrega: string;
+  /** Primer nombre del domiciliario, una vez que alguien aceptó el pedido */
+  repartidor: string | null;
+  items: ItemPedido[];
+  creadoEn: string;
+  /** Forma y estado del pago (pago físico: efectivo al domiciliario) */
+  pago: { metodo: string; estado: string; monto: number } | null;
+};
+
+type FilaSeguimiento = {
+  id: string;
+  numero: number;
+  estado: EstadoPedido;
+  listo_para_recoger: boolean | null;
+  total: number;
+  creado_en: string;
+  comercios: { nombre: string } | null;
+  puntos_entrega: { nombre: string } | null;
+  items_pedido: { cantidad: number; productos: { nombre: string } | null }[];
+  pagos: { metodo: string; estado: string; monto: number }[] | { metodo: string; estado: string; monto: number } | null;
+};
+
+/** Pedido más reciente del solicitante (en curso o terminado). null si nunca ha pedido. Lanza Error si falla. */
+export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPedido | null> {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select(
+      'id, numero, estado, listo_para_recoger, total, creado_en, comercios(nombre), puntos_entrega(nombre), items_pedido(cantidad, productos(nombre)), pagos(metodo, estado, monto)'
+    )
+    .eq('solicitante_id', userId)
+    .order('creado_en', { ascending: false })
+    .limit(1)
+    .returns<FilaSeguimiento[]>();
+  if (error) {
+    console.warn('[seguimiento] último pedido:', error.code, error.message);
+    throw new Error('No se pudo cargar tu pedido. Revisa tu conexión.');
+  }
+  const f = data?.[0];
+  if (!f) return null;
+
+  let repartidor: string | null = null;
+  const { data: partes, error: errorPartes } = await supabase.rpc('datos_partes_pedido', {
+    p_pedido_ids: [f.id],
+  });
+  if (errorPartes) console.warn('[seguimiento] nombres:', errorPartes.code, errorPartes.message);
+  else repartidor = (partes as { repartidor: string | null }[] | null)?.[0]?.repartidor || null;
+
+  return {
+    id: f.id,
+    numero: f.numero,
+    estado: f.estado,
+    listoParaRecoger: f.listo_para_recoger ?? false,
+    total: Number(f.total),
+    comercio: f.comercios?.nombre ?? 'Comercio',
+    puntoEntrega: f.puntos_entrega?.nombre ?? 'Punto de entrega',
+    repartidor,
+    items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
+    creadoEn: f.creado_en,
+    pago: Array.isArray(f.pagos) ? (f.pagos[0] ?? null) : f.pagos,
+  };
+}
+
+/**
+ * Avisa cuando cambia cualquier pedido del solicitante (Realtime; la RLS filtra).
+ * Devuelve una función para dejar de escuchar.
+ */
+export function escucharMisPedidos(userId: string, alCambiar: () => void): () => void {
+  const canal = supabase
+    .channel(`mis-pedidos-${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'pedidos', filter: `solicitante_id=eq.${userId}` },
+      () => alCambiar()
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(canal);
+  };
+}
+
+/** El solicitante dueño pide un código de entrega nuevo (reinicia los intentos). null si no se pudo. */
+export async function regenerarCodigoEntrega(pedidoId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('regenerar_codigo_entrega', { p_pedido_id: pedidoId });
+  if (error) {
+    console.warn('[seguimiento] regenerar código:', error.code, error.message);
+    return null;
+  }
+  return data.codigo;
 }

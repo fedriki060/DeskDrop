@@ -171,7 +171,7 @@ export default function Resumen() {
 
       <AvisoEmergente
         visible={codigoCreado !== undefined}
-        mensaje={`Pedido #${codigoCreado} creado. Ya lo recibió el comercio.`}
+        mensaje="Pedido creado. Ya lo recibió el comercio. Síguelo en Inicio."
         onCerrar={onCerrarAviso}
       />
     </View>

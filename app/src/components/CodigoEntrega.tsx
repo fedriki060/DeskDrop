@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { obtenerCodigoEntrega } from '../services/seguimientoService';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { obtenerCodigoEntrega, regenerarCodigoEntrega } from '../services/seguimientoService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../theme';
 
 type Props = {
@@ -21,6 +21,24 @@ export default function CodigoEntrega({ pedidoId }: Props) {
     };
   }, [pedidoId]);
 
+  const generarNuevo = () => {
+    Alert.alert(
+      'Generar nuevo código',
+      'El código actual dejará de servir. Úsalo si alguien más lo vio o se agotaron los intentos.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Generar',
+          onPress: async () => {
+            const nuevo = await regenerarCodigoEntrega(pedidoId);
+            if (nuevo) setCodigo(nuevo);
+            else Alert.alert('No se pudo generar', 'Inténtalo de nuevo.');
+          },
+        },
+      ]
+    );
+  };
+
   if (codigo === undefined) return null; // cargando
   if (codigo === null) return null; // no se pudo leer: no se muestra nada confuso
 
@@ -34,7 +52,10 @@ export default function CodigoEntrega({ pedidoId }: Props) {
           </View>
         ))}
       </View>
-      <Text style={styles.ayuda}>Díselo al domiciliario solo cuando tengas tu pedido en la mano.</Text>
+      <Text style={styles.ayuda}>Díselo al domiciliario solo cuando recibas el pedido.</Text>
+      <Pressable onPress={generarNuevo} hitSlop={8}>
+        <Text style={styles.nuevo}>Generar nuevo código</Text>
+      </Pressable>
     </View>
   );
 }
@@ -70,6 +91,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
     color: colors.primary,
+  },
+  nuevo: {
+    marginTop: spacing.sm,
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
   ayuda: {
     marginTop: spacing.sm,

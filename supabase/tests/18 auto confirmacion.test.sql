@@ -4,12 +4,12 @@ create extension if not exists pgtap with schema extensions;
 
 -- Ids: a1-a6 solicitantes, b1 repartidor, c1 admin de comercio, d1 zona, e1 comercio, 11 punto.
 -- Pedidos (ad0N es del solicitante aN), todos de 1.000 + 2.000 = 3.000, repartidor b1:
---   ad01 En Camino hace 16 min        -> se confirma
---   ad02 En Camino hace 14 min        -> no se confirma (aún no vence)
+--   ad01 En Camino hace 61 min        -> se confirma
+--   ad02 En Camino hace 59 min        -> no se confirma (aún no vence)
 --   ad03 En Camino hace 3 horas       -> se confirma (el job se retrasó)
 --   ad04 Asignado                     -> no se confirma; se usa para probar el trigger
 --   ad05 Entregado                    -> no cambia
---   ad06 En Camino hace justo 15 min  -> se confirma (el límite es inclusivo)
+--   ad06 En Camino hace justo 60 min  -> se confirma (el límite es inclusivo)
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a1', 'sol1@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000a2', 'sol2@eia.edu.co'),
@@ -46,17 +46,17 @@ insert into public.puntos_entrega (id, zona_id, nombre, latitud, longitud, activ
 
 insert into public.pedidos (id, solicitante_id, repartidor_id, comercio_id, punto_entrega_id, estado, subtotal, tarifa_domicilio, total, en_camino_en) values
   ('00000000-0000-0000-0000-00000000ad01', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1',
-   '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '16 minutes'),
-  ('00000000-0000-0000-0000-00000000ad02', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000b1',
-   '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '14 minutes'),
-  ('00000000-0000-0000-0000-00000000ad03', '00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000b1',
+   '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '61 minutes'),
+  ('00000000-0000-0000-0000-00000000ad02', '00000000-0000-0000-0000-0000000000a2', null,
+   '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '59 minutes'),
+  ('00000000-0000-0000-0000-00000000ad03', '00000000-0000-0000-0000-0000000000a3', null,
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '3 hours'),
-  ('00000000-0000-0000-0000-00000000ad04', '00000000-0000-0000-0000-0000000000a4', '00000000-0000-0000-0000-0000000000b1',
+  ('00000000-0000-0000-0000-00000000ad04', '00000000-0000-0000-0000-0000000000a4', null,
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Asignado',  1000, 2000, 3000, null),
   ('00000000-0000-0000-0000-00000000ad05', '00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-0000000000b1',
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Entregado', 1000, 2000, 3000, now() - interval '2 hours'),
-  ('00000000-0000-0000-0000-00000000ad06', '00000000-0000-0000-0000-0000000000a6', '00000000-0000-0000-0000-0000000000b1',
-   '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '15 minutes');
+  ('00000000-0000-0000-0000-00000000ad06', '00000000-0000-0000-0000-0000000000a6', null,
+   '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000, now() - interval '60 minutes');
 
 create function pg_temp.estado(p_id uuid) returns text language sql as $f$
   select estado::text from public.pedidos where id = p_id
@@ -83,8 +83,8 @@ select is_definer('public', 'confirmar_entregas_vencidas', array[]::name[],
   'confirmar_entregas_vencidas() es SECURITY DEFINER');
 select is(
   (select valor from public.configuracion where clave = 'minutos_auto_confirmacion'),
-  15::numeric,
-  'el tiempo límite por defecto es de 15 minutos (T-014)');
+  60::numeric,
+  'el tiempo límite por defecto es de 60 minutos (T-014)');
 select ok(
   not has_function_privilege('anon', 'public.confirmar_entregas_vencidas()', 'execute')
   and not has_function_privilege('authenticated', 'public.confirmar_entregas_vencidas()', 'execute'),
@@ -110,7 +110,7 @@ select is(
 update public.pedidos set notas_entrega = 'Timbre 2' where id = '00000000-0000-0000-0000-00000000ad02';
 select is(
   (select en_camino_en from public.pedidos where id = '00000000-0000-0000-0000-00000000ad02'),
-  now() - interval '14 minutes',
+  now() - interval '59 minutes',
   'actualizar otra columna no cambia en_camino_en');
 
 -- ---------------------------------------------------------------------------
@@ -118,13 +118,13 @@ select is(
 -- ---------------------------------------------------------------------------
 select is(public.confirmar_entregas_vencidas(), 3, 'la primera corrida confirma 3 pedidos');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad01'), 'Entregado',
-  'se confirma el pedido que lleva 16 minutos En Camino');
+  'se confirma el pedido que lleva 61 minutos En Camino');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad03'), 'Entregado',
   'se confirma el pedido vencido hace horas aunque el job se haya retrasado');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad06'), 'Entregado',
   'se confirma el pedido que cumple justo el tiempo límite');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad02'), 'En Camino',
-  'no se confirma el pedido que lleva 14 minutos En Camino');
+  'no se confirma el pedido que lleva 59 minutos En Camino');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad04'), 'En Camino',
   'no se confirma el pedido que acaba de salir');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad05'), 'Entregado',
@@ -152,9 +152,9 @@ reset role;
 -- El tiempo límite es configurable
 -- ---------------------------------------------------------------------------
 update public.configuracion set valor = 10 where clave = 'minutos_auto_confirmacion';
-select is(public.confirmar_entregas_vencidas(), 1, 'con 10 minutos se confirma el pedido de 14 minutos');
+select is(public.confirmar_entregas_vencidas(), 1, 'con 10 minutos se confirma el pedido de 59 minutos');
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ad02'), 'Entregado',
-  'el pedido de 14 minutos queda Entregado al bajar el tiempo límite');
+  'el pedido de 59 minutos queda Entregado al bajar el tiempo límite');
 
 -- ---------------------------------------------------------------------------
 -- Falla cerrado sin configuración válida

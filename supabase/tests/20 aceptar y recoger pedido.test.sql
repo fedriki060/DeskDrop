@@ -7,9 +7,9 @@ create extension if not exists pgtap with schema extensions;
 -- Pedidos (todos de 1.000 + 2.000 = 3.000):
 --   ba01 a1 Creado            -> lo acepta b1 (caso feliz)
 --   ba03 a4 Creado            -> a4 no puede aceptar su propio pedido
---   ba04 a5 Asignado (b1)     -> no está listo para recoger
---   ba05 a6 Asignado (b1) listo -> recogida feliz
---   ba06 a7 Creado            -> b1 no lo tiene asignado
+--   ba04 a5 Asignado (b3)     -> no está listo para recoger
+--   ba05 a6 Asignado (b2) listo -> recogida feliz
+--   ba06 a7 Creado            -> b1 no lo tiene asignado; tampoco puede aceptarlo con una entrega en curso
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a1', 'sol1@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000a2', 'sol2@eia.edu.co'),
@@ -19,6 +19,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a7', 'sol7@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000b1', 'rep1@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000b2', 'rep2@eia.edu.co'),
+  ('00000000-0000-0000-0000-0000000000b3', 'rep3@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000c1', 'com1@eia.edu.co');
 
 insert into public.perfiles (id, email, nombre_completo, rol) values
@@ -30,6 +31,7 @@ insert into public.perfiles (id, email, nombre_completo, rol) values
   ('00000000-0000-0000-0000-0000000000a7', 'sol7@eia.edu.co', 'Solicitante Siete',  'solicitante'),
   ('00000000-0000-0000-0000-0000000000b1', 'rep1@eia.edu.co', 'Repartidor Uno',     'repartidor'),
   ('00000000-0000-0000-0000-0000000000b2', 'rep2@eia.edu.co', 'Repartidor Dos',     'repartidor'),
+  ('00000000-0000-0000-0000-0000000000b3', 'rep3@eia.edu.co', 'Repartidor Tres',    'repartidor'),
   ('00000000-0000-0000-0000-0000000000c1', 'com1@eia.edu.co', 'Admin Comercio 1',   'comercio')
 on conflict (id) do update set rol = excluded.rol;
 
@@ -37,7 +39,8 @@ on conflict (id) do update set rol = excluded.rol;
 insert into public.aceptaciones_repartidor (usuario_id, version) values
   ('00000000-0000-0000-0000-0000000000a4', 'test'),
   ('00000000-0000-0000-0000-0000000000b1', 'test'),
-  ('00000000-0000-0000-0000-0000000000b2', 'test');
+  ('00000000-0000-0000-0000-0000000000b2', 'test'),
+  ('00000000-0000-0000-0000-0000000000b3', 'test');
 
 insert into public.comercios (id, administrador_id, nombre, activo) values
   ('00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000c1', 'Cafetería Test', true);
@@ -51,9 +54,9 @@ insert into public.pedidos (id, solicitante_id, repartidor_id, comercio_id, punt
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Creado',   false, 1000, 2000, 3000),
   ('00000000-0000-0000-0000-00000000ba03', '00000000-0000-0000-0000-0000000000a4', null,
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Creado',   false, 1000, 2000, 3000),
-  ('00000000-0000-0000-0000-00000000ba04', '00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-0000000000b1',
+  ('00000000-0000-0000-0000-00000000ba04', '00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-0000000000b3',
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Asignado', false, 1000, 2000, 3000),
-  ('00000000-0000-0000-0000-00000000ba05', '00000000-0000-0000-0000-0000000000a6', '00000000-0000-0000-0000-0000000000b1',
+  ('00000000-0000-0000-0000-00000000ba05', '00000000-0000-0000-0000-0000000000a6', '00000000-0000-0000-0000-0000000000b2',
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Asignado', true,  1000, 2000, 3000),
   ('00000000-0000-0000-0000-00000000ba06', '00000000-0000-0000-0000-0000000000a7', null,
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Creado',   false, 1000, 2000, 3000);
@@ -75,7 +78,7 @@ begin
   set local role anon;
 end $f$;
 
-select plan(23);
+select plan(25);
 
 -- ---------------------------------------------------------------------------
 -- Permisos
@@ -144,19 +147,22 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- confirmar_recogida
 -- ---------------------------------------------------------------------------
-select pg_temp.como('00000000-0000-0000-0000-0000000000b2');
+select pg_temp.como('00000000-0000-0000-0000-0000000000b3');
 select throws_ok($$ select public.confirmar_recogida('00000000-0000-0000-0000-00000000ba05') $$,
   'P0002', 'PEDIDO_NO_ENCONTRADO: El pedido no existe o no lo tienes asignado.',
   'otro domiciliario no puede confirmar la recogida de un pedido ajeno');
+select throws_ok($$ select public.confirmar_recogida('00000000-0000-0000-0000-00000000ba04') $$,
+  '55000', 'PEDIDO_NO_LISTO: El comercio aún no marca el pedido como listo para recoger.',
+  'no se confirma la recogida si el comercio no lo marcó listo');
 reset role;
 
 select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
 select throws_ok($$ select public.confirmar_recogida('00000000-0000-0000-0000-00000000ba06') $$,
   'P0002', 'PEDIDO_NO_ENCONTRADO: El pedido no existe o no lo tienes asignado.',
   'no se confirma la recogida de un pedido que no se tiene asignado');
-select throws_ok($$ select public.confirmar_recogida('00000000-0000-0000-0000-00000000ba04') $$,
-  '55000', 'PEDIDO_NO_LISTO: El comercio aún no marca el pedido como listo para recoger.',
-  'no se confirma la recogida si el comercio no lo marcó listo');
+reset role;
+
+select pg_temp.como('00000000-0000-0000-0000-0000000000b2');
 select is(public.confirmar_recogida('00000000-0000-0000-0000-00000000ba05') ->> 'estado', 'En Camino',
   'con el pedido listo, el domiciliario confirma la recogida y queda En Camino');
 reset role;
@@ -164,7 +170,7 @@ select is(pg_temp.estado('00000000-0000-0000-0000-00000000ba05'), 'En Camino', '
 select isnt((select en_camino_en from public.pedidos where id = '00000000-0000-0000-0000-00000000ba05'), null,
   'se registra la hora de salida (en_camino_en)');
 
-select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
+select pg_temp.como('00000000-0000-0000-0000-0000000000b2');
 select throws_ok($$ select public.confirmar_recogida('00000000-0000-0000-0000-00000000ba05') $$,
   '55000', 'ESTADO_NO_PERMITIDO: Solo puedes confirmar la recogida de un pedido Asignado (estado actual: En Camino).',
   'confirmar la recogida dos veces responde ESTADO_NO_PERMITIDO');
@@ -174,6 +180,19 @@ select pg_temp.como('00000000-0000-0000-0000-0000000000a2');
 select throws_ok($$ select public.confirmar_recogida('00000000-0000-0000-0000-00000000ba05') $$,
   '42501', null, 'un usuario no habilitado no puede confirmar recogidas');
 reset role;
+
+-- ---------------------------------------------------------------------------
+-- Una entrega activa a la vez (T-084)
+-- ---------------------------------------------------------------------------
+select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
+select throws_ok($$ select public.aceptar_pedido('00000000-0000-0000-0000-00000000ba06') $$,
+  '55000', 'ENTREGA_EN_CURSO: Termina tu entrega actual antes de aceptar otro pedido.',
+  'con una entrega Asignada no se puede aceptar otro pedido');
+reset role;
+select throws_ok(
+  $$ update public.pedidos set repartidor_id = '00000000-0000-0000-0000-0000000000b1', estado = 'Asignado'
+     where id = '00000000-0000-0000-0000-00000000ba06' $$,
+  '23505', null, 'el índice único impide dos entregas activas del mismo domiciliario aunque se salte la función');
 
 select * from finish();
 rollback;

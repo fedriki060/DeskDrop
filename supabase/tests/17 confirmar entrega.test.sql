@@ -6,9 +6,9 @@ create extension if not exists pgtap with schema extensions;
 --      d1 zona, e1 comercio, 11 punto del campus.
 -- Pedidos (todos de 1.000 + 2.000 = 3.000):
 --   ac01 a1 En Camino (b1)  -> caso feliz
---   ac02 a2 Asignado  (b1)  -> todavía no se puede confirmar
+--   ac02 a2 Asignado  (b3)  -> todavía no se puede confirmar
 --   ac03 a3 Creado          -> sin domiciliario
---   ac05 a5 En Camino (b1)  -> bloqueo por intentos fallidos
+--   ac05 a5 En Camino (b2)  -> bloqueo por intentos fallidos y código nuevo
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a1', 'sol1@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000a2', 'sol2@eia.edu.co'),
@@ -16,6 +16,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a5', 'sol5@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000b1', 'rep1@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000b2', 'rep2@eia.edu.co'),
+  ('00000000-0000-0000-0000-0000000000b3', 'rep3@eia.edu.co'),
   ('00000000-0000-0000-0000-0000000000c1', 'com1@eia.edu.co');
 
 insert into public.perfiles (id, email, nombre_completo, rol) values
@@ -25,13 +26,16 @@ insert into public.perfiles (id, email, nombre_completo, rol) values
   ('00000000-0000-0000-0000-0000000000a5', 'sol5@eia.edu.co', 'Solicitante Cinco',  'solicitante'),
   ('00000000-0000-0000-0000-0000000000b1', 'rep1@eia.edu.co', 'Repartidor Uno',     'repartidor'),
   ('00000000-0000-0000-0000-0000000000b2', 'rep2@eia.edu.co', 'Repartidor Dos',     'repartidor'),
+  ('00000000-0000-0000-0000-0000000000b3', 'rep3@eia.edu.co', 'Repartidor Tres',    'repartidor'),
   ('00000000-0000-0000-0000-0000000000c1', 'com1@eia.edu.co', 'Admin Comercio 1',   'comercio')
 on conflict (id) do update set rol = excluded.rol;
 
+-- Un domiciliario solo puede tener una entrega activa: b1 tiene ac01, b3 tiene ac02 y b2 tiene ac05.
 -- Los repartidores de prueba ya aceptaron la declaración de +18 (HU-19).
 insert into public.aceptaciones_repartidor (usuario_id, version) values
   ('00000000-0000-0000-0000-0000000000b1', 'test'),
-  ('00000000-0000-0000-0000-0000000000b2', 'test');
+  ('00000000-0000-0000-0000-0000000000b2', 'test'),
+  ('00000000-0000-0000-0000-0000000000b3', 'test');
 
 insert into public.comercios (id, administrador_id, nombre, activo) values
   ('00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000c1', 'Cafetería Test', true);
@@ -45,11 +49,11 @@ insert into public.puntos_entrega (id, zona_id, nombre, latitud, longitud, activ
 insert into public.pedidos (id, solicitante_id, repartidor_id, comercio_id, punto_entrega_id, estado, subtotal, tarifa_domicilio, total) values
   ('00000000-0000-0000-0000-00000000ac01', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1',
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000),
-  ('00000000-0000-0000-0000-00000000ac02', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000b1',
+  ('00000000-0000-0000-0000-00000000ac02', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000b3',
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Asignado',  1000, 2000, 3000),
   ('00000000-0000-0000-0000-00000000ac03', '00000000-0000-0000-0000-0000000000a3', null,
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'Creado',    1000, 2000, 3000),
-  ('00000000-0000-0000-0000-00000000ac05', '00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-0000000000b1',
+  ('00000000-0000-0000-0000-00000000ac05', '00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-0000000000b2',
    '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000011', 'En Camino', 1000, 2000, 3000);
 
 create function pg_temp.estado(p_id uuid) returns text language sql security definer as $f$
@@ -82,7 +86,7 @@ begin
   set local role anon;
 end $f$;
 
-select plan(31);
+select plan(39);
 
 -- ---------------------------------------------------------------------------
 -- Estructura y permisos
@@ -188,10 +192,14 @@ select lives_ok($$ select public.registrar_cobro_efectivo('00000000-0000-0000-00
 -- ---------------------------------------------------------------------------
 -- Estados desde los que no se puede confirmar
 -- ---------------------------------------------------------------------------
+reset role;
+select pg_temp.como('00000000-0000-0000-0000-0000000000b3');
 select throws_ok(
   $$ select public.confirmar_entrega('00000000-0000-0000-0000-00000000ac02', '0000') $$,
   '55000', 'ESTADO_NO_PERMITIDO: Solo puedes confirmar la entrega de un pedido En Camino (estado actual: Asignado).',
   'no se confirma un pedido Asignado');
+reset role;
+select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
 select throws_ok(
   $$ select public.confirmar_entrega('00000000-0000-0000-0000-00000000ac03', '0000') $$,
   'P0002', 'PEDIDO_NO_ENCONTRADO: El pedido no existe o no lo tienes asignado.',
@@ -201,7 +209,7 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- Bloqueo tras 5 intentos fallidos
 -- ---------------------------------------------------------------------------
-select pg_temp.como('00000000-0000-0000-0000-0000000000b1');
+select pg_temp.como('00000000-0000-0000-0000-0000000000b2');
 select public.confirmar_entrega('00000000-0000-0000-0000-00000000ac05', pg_temp.codigo_malo('00000000-0000-0000-0000-00000000ac05'));
 select public.confirmar_entrega('00000000-0000-0000-0000-00000000ac05', pg_temp.codigo_malo('00000000-0000-0000-0000-00000000ac05'));
 select public.confirmar_entrega('00000000-0000-0000-0000-00000000ac05', pg_temp.codigo_malo('00000000-0000-0000-0000-00000000ac05'));
@@ -216,6 +224,42 @@ select throws_ok(
   'agotados los intentos el código se bloquea');
 reset role;
 select is(pg_temp.estado('00000000-0000-0000-0000-00000000ac05'), 'En Camino', 'el pedido bloqueado sigue En Camino');
+
+-- ---------------------------------------------------------------------------
+-- Regenerar el código (T-088): el solicitante dueño reinicia los intentos y sigue la entrega
+-- ---------------------------------------------------------------------------
+select has_function('public', 'regenerar_codigo_entrega', array['uuid'], 'existe regenerar_codigo_entrega');
+select ok(not has_function_privilege('anon', 'public.regenerar_codigo_entrega(uuid)', 'execute'),
+  'anon no puede ejecutar regenerar_codigo_entrega');
+
+select pg_temp.como('00000000-0000-0000-0000-0000000000a2');
+select throws_ok($$ select public.regenerar_codigo_entrega('00000000-0000-0000-0000-00000000ac05') $$,
+  'P0002', 'PEDIDO_NO_ENCONTRADO: El pedido no existe o no es tuyo.', 'otro solicitante no puede regenerar un código ajeno');
+reset role;
+
+select pg_temp.como('00000000-0000-0000-0000-0000000000b2');
+select throws_ok($$ select public.regenerar_codigo_entrega('00000000-0000-0000-0000-00000000ac05') $$,
+  'P0002', 'PEDIDO_NO_ENCONTRADO: El pedido no existe o no es tuyo.', 'el domiciliario no puede regenerar el código');
+reset role;
+
+select pg_temp.como('00000000-0000-0000-0000-0000000000a1');
+select throws_ok($$ select public.regenerar_codigo_entrega('00000000-0000-0000-0000-00000000ac01') $$,
+  '55000', 'ESTADO_NO_PERMITIDO: Solo puedes cambiar el código de un pedido en curso (estado actual: Cerrado).',
+  'no se regenera el código de un pedido ya cerrado (entregado y cobrado)');
+reset role;
+
+select pg_temp.como('00000000-0000-0000-0000-0000000000a5');
+select matches(public.regenerar_codigo_entrega('00000000-0000-0000-0000-00000000ac05') ->> 'codigo', '^[0-9]{4}$',
+  'el solicitante dueño recibe un código nuevo de 4 dígitos');
+reset role;
+select is(pg_temp.intentos('00000000-0000-0000-0000-00000000ac05'), 0, 'regenerar reinicia los intentos fallidos');
+
+select pg_temp.como('00000000-0000-0000-0000-0000000000b2');
+select is(
+  public.confirmar_entrega('00000000-0000-0000-0000-00000000ac05',
+     pg_temp.codigo('00000000-0000-0000-0000-00000000ac05')) ->> 'estado',
+  'Entregado', 'con el código nuevo el domiciliario confirma la entrega');
+reset role;
 
 select * from finish();
 rollback;

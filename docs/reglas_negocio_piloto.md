@@ -17,7 +17,7 @@ Con base en los hallazgos del levantamiento con estudiantes en el campus EIA (T-
 | **Reparto de la Tarifa de Envío** | **80% Repartidor / 20% Plataforma** | De los $2.000 COP: **$1.600 COP** para el domiciliario por carrera interna y **$400 COP** de fondo operativo de plataforma. |
 | **Margen sobre Comercio / Alimentos** | **0% (Fase Piloto)** | Para incentivar la vinculación de la cafetería/restaurante piloto sin fricción comercial inicial. |
 | **Tiempo límite de auto-cancelación** | **10 minutos** | Si un pedido en estado `Creado` no es tomado por ningún repartidor en 10 min, pasa a `Cancelado` (RN-003) y se libera el inventario. |
-| **Tiempo límite de auto-confirmación** | **15 minutos** | Tras pasar a `En Camino`, si el solicitante no presiona *"Ya recibí mi pedido"*, el sistema asume entrega conforme y lo pasa a `Entregado`. |
+| **Tiempo límite de auto-confirmación** | **60 minutos** | Tras pasar a `En Camino`, si el domiciliario no digita el código de 4 dígitos del solicitante, el sistema asume entrega conforme y lo pasa a `Entregado` (T-089). |
 
 ---
 
@@ -32,5 +32,5 @@ Para que Aguas implemente las funciones SQL y tareas programadas (`pg_cron`):
    Condición: estado = 'Creado' AND creado_en <= NOW() - INTERVAL '10 minutes'
 Acción: Transición atómica a 'Cancelado' y reposición de inventario_disponible en tabla productos.
 
-Condición: estado = 'En Camino' AND actualizado_en <= NOW() - INTERVAL '15 minutes'
+Condición: estado = 'En Camino' AND en_camino_en <= NOW() - INTERVAL '60 minutes'
 Acción: Transición atómica a 'Entregado' habilitando el flujo de cobro/cierre.

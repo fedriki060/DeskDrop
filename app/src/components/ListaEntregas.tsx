@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useVueltaAPrimerPlano } from '../hooks/useVueltaAPrimerPlano';
 import {
   aceptarPedido,
   confirmarRecogida,
@@ -33,6 +34,7 @@ export default function ListaEntregas() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string>();
   const [ocupado, setOcupado] = useState<string>();
+  const vueltas = useVueltaAPrimerPlano();
 
   const cargar = useCallback(async () => {
     if (!userId) return;
@@ -46,10 +48,10 @@ export default function ListaEntregas() {
 
   useEffect(() => {
     cargar().finally(() => setCargando(false));
-  }, [cargar]);
+  }, [cargar, vueltas]);
 
   // Realtime, más una recarga periódica: si otro domiciliario toma un pedido, este deja de verse
-  useEffect(() => escucharEntregas(cargar), [cargar]);
+  useEffect(() => escucharEntregas(cargar), [cargar, vueltas]);
   useEffect(() => {
     const t = setInterval(cargar, REFRESCO_MS);
     return () => clearInterval(t);
@@ -76,6 +78,11 @@ export default function ListaEntregas() {
       </View>
     );
   }
+
+  // Una entrega a la vez: mientras tenga una Asignada o En Camino no puede aceptar otra
+  const tieneEntregaActiva = entregas.some(
+    (e) => e.esMia && (e.estado === 'Asignado' || e.estado === 'En Camino')
+  );
 
   const secciones = [
     { titulo: 'Mis entregas', data: entregas.filter((e) => e.esMia) },
@@ -114,9 +121,16 @@ export default function ListaEntregas() {
           </View>
           <Text style={styles.total}>Total a cobrar: {formatearPrecio(item.total)}</Text>
 
-          {!item.esMia && (
-            <Boton titulo="Aceptar pedido" deshabilitado={ocupado === item.id} onPress={() => accion(item.id, aceptarPedido)} />
-          )}
+          {!item.esMia &&
+            (tieneEntregaActiva ? (
+              <Text style={styles.espera}>Termina tu entrega actual para aceptar otro pedido</Text>
+            ) : (
+              <Boton
+                titulo="Aceptar pedido"
+                deshabilitado={ocupado === item.id}
+                onPress={() => accion(item.id, aceptarPedido)}
+              />
+            ))}
 
           {item.esMia && item.estado === 'Asignado' &&
             (item.listoParaRecoger ? (
@@ -134,11 +148,14 @@ export default function ListaEntregas() {
           )}
 
           {item.esMia && item.estado === 'Entregado' && (
-            <Boton
-              titulo={`Registrar cobro en efectivo (${formatearPrecio(item.total)})`}
-              deshabilitado={ocupado === item.id}
-              onPress={() => accion(item.id, registrarCobroEfectivo)}
-            />
+            <>
+              <Text style={styles.cobro}>Cobra {formatearPrecio(item.total)} en efectivo</Text>
+              <Boton
+                titulo="Ya cobré"
+                deshabilitado={ocupado === item.id}
+                onPress={() => accion(item.id, registrarCobroEfectivo)}
+              />
+            </>
           )}
         </View>
       )}
@@ -174,6 +191,7 @@ const styles = StyleSheet.create({
   productos: { marginVertical: spacing.sm },
   producto: { fontSize: fontSize.md, color: colors.text },
   total: { marginBottom: spacing.sm, fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.primary },
+  cobro: { marginBottom: spacing.sm, fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text },
   espera: { fontSize: fontSize.md, color: colors.textMuted },
   boton: { padding: spacing.md, alignItems: 'center', borderRadius: radius.sm, backgroundColor: colors.primary },
   inactivo: { opacity: 0.6 },

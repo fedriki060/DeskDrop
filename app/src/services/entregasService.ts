@@ -12,6 +12,7 @@ const MENSAJES: Record<string, string> = {
   PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido entre tus entregas.',
   PEDIDO_PROPIO: 'No puedes entregarte tu propio pedido.',
   PEDIDO_NO_DISPONIBLE: 'Otro domiciliario ya tomó este pedido.',
+  ENTREGA_EN_CURSO: 'Termina tu entrega actual antes de aceptar otro pedido.',
   ESTADO_NO_PERMITIDO: 'El pedido ya cambió de estado. Actualiza la lista.',
   PAGO_YA_COBRADO: 'Este pedido ya fue cobrado.',
   PEDIDO_NO_LISTO: 'El comercio aún no marca el pedido como listo para recoger.',
