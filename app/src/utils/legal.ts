@@ -1,5 +1,5 @@
-export const VERSION_LEGAL = '0.1-borrador';
-export const FECHA_VERSION = '28/10/2026';
+export const VERSION_LEGAL = '0.2-borrador';
+export const FECHA_VERSION = '11/11/2026';
 export const AVISO_BORRADOR =
   'Texto provisional. Pendiente de revisión por el área jurídica de la organización.';
 
@@ -39,7 +39,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
   {
     titulo: '1. Qué datos guardamos',
     cuerpo:
-      'Tu nombre, fecha de nacimiento, tipo y número de documento, correo institucional, historial de pedidos y la ubicación de entrega.',
+      'Tu nombre, correo institucional, celular (opcional), historial de pedidos y punto de entrega. Si eres domiciliario, también tu calificación promedio y la declaración de mayoría de edad.',
   },
   {
     titulo: '2. Para qué los usamos',
