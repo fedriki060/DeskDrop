@@ -1,32 +1,38 @@
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import AvisoEmergente from '../components/AvisoEmergente';
 import BotonPrimario from '../components/BotonPrimario';
 import CampoTexto from '../components/CampoTexto';
 import PantallaAuth from '../components/PantallaAuth';
+import { useAuth } from '../context/AuthContext';
 import { colors, fontSize, spacing } from '../theme';
 import { esCorreoInstitucional } from '../utils/validaciones';
 
 export default function Recuperar() {
   const router = useRouter();
+  const { solicitarRecuperacion } = useAuth();
   const [correo, setCorreo] = useState('');
   const [error, setError] = useState('');
-  const [enviado, setEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
-  const onEnviar = () => {
+  const onEnviar = async () => {
     if (!esCorreoInstitucional(correo)) {
       setError('Ingresa un correo institucional válido');
       return;
     }
     setError('');
-    setEnviado(true);
-  };
+    setEnviando(true);
+    const resultado = await solicitarRecuperacion(correo);
+    setEnviando(false);
 
-  // SIMULADO: en la app real se llega a "restablecer" desde el enlace del correo
-  const onCerrarAviso = () => {
-    setEnviado(false);
-    router.replace('/restablecer');
+    if (!resultado.ok) {
+      setError(resultado.mensaje);
+      return;
+    }
+    router.push({
+      pathname: '/restablecer',
+      params: { correo: correo.trim().toLowerCase() },
+    } as Href);
   };
 
   return (
@@ -40,17 +46,15 @@ export default function Recuperar() {
         error={error}
       />
 
-      <BotonPrimario titulo="Enviar link de recuperación" onPress={onEnviar} />
+      <BotonPrimario
+        titulo={enviando ? 'Enviando...' : 'Enviar código'}
+        deshabilitado={enviando}
+        onPress={onEnviar}
+      />
 
       <Pressable onPress={() => router.back()}>
         <Text style={styles.enlace}>Volver a iniciar sesión</Text>
       </Pressable>
-
-      <AvisoEmergente
-        visible={enviado}
-        mensaje="Link de recuperación enviado a tu correo."
-        onCerrar={onCerrarAviso}
-      />
     </PantallaAuth>
   );
 }

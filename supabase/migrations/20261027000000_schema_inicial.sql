@@ -9,7 +9,7 @@ CREATE TYPE estado_pago AS ENUM ('pendiente', 'cobrado', 'devuelto');
 CREATE TYPE metodo_pago AS ENUM ('efectivo', 'transferencia', 'pasarela');
 
 -- 2. Perfiles (vía Supabase Auth)
-CREATE TABLE perfiles (
+CREATE TABLE IF NOT EXISTS perfiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL UNIQUE,
     nombre_completo VARCHAR(255) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE perfiles (
 );
 
 -- 3. Comercios (Cafeterías)
-CREATE TABLE comercios (
+CREATE TABLE IF NOT EXISTS comercios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     administrador_id UUID NOT NULL REFERENCES perfiles(id),
     nombre VARCHAR(150) NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE comercios (
 );
 
 -- 4. Productos
-CREATE TABLE productos (
+CREATE TABLE IF NOT EXISTS productos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     comercio_id UUID NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
     nombre VARCHAR(150) NOT NULL,
@@ -45,14 +45,14 @@ CREATE TABLE productos (
 );
 
 -- 5. Zonas y Puntos de Entrega (RN-002)
-CREATE TABLE zonas_campus (
+CREATE TABLE IF NOT EXISTS zonas_campus (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
     activo BOOLEAN DEFAULT TRUE
 );
 
-CREATE TABLE puntos_entrega (
+CREATE TABLE IF NOT EXISTS puntos_entrega (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     zona_id UUID NOT NULL REFERENCES zonas_campus(id) ON DELETE RESTRICT,
     nombre VARCHAR(150) NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE puntos_entrega (
 );
 
 -- 6. Pedidos
-CREATE TABLE pedidos (
+CREATE TABLE IF NOT EXISTS pedidos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     solicitante_id UUID NOT NULL REFERENCES perfiles(id),
     repartidor_id UUID REFERENCES perfiles(id),
@@ -85,7 +85,7 @@ ON pedidos (solicitante_id)
 WHERE estado IN ('Creado', 'Asignado', 'En Camino');
 
 -- 7. Items del Pedido
-CREATE TABLE items_pedido (
+CREATE TABLE IF NOT EXISTS items_pedido (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pedido_id UUID NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
     producto_id UUID NOT NULL REFERENCES productos(id),
@@ -94,7 +94,7 @@ CREATE TABLE items_pedido (
 );
 
 -- 8. Pagos
-CREATE TABLE pagos (
+CREATE TABLE IF NOT EXISTS pagos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pedido_id UUID NOT NULL UNIQUE REFERENCES pedidos(id) ON DELETE CASCADE,
     metodo metodo_pago NOT NULL DEFAULT 'efectivo',
@@ -105,7 +105,7 @@ CREATE TABLE pagos (
 );
 
 -- 9. Calificaciones
-CREATE TABLE calificaciones (
+CREATE TABLE IF NOT EXISTS calificaciones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pedido_id UUID NOT NULL UNIQUE REFERENCES pedidos(id) ON DELETE CASCADE,
     repartidor_id UUID NOT NULL REFERENCES perfiles(id),

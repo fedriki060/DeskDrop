@@ -1,4 +1,5 @@
 import { createContext, ReactNode, useContext, useState } from 'react';
+import { PuntoEntrega } from '../services/checkoutService';
 import { Producto } from '../types';
 
 export type ItemCarrito = {
@@ -11,9 +12,11 @@ type CarritoContextType = {
   comercioId?: string;
   totalUnidades: number;
   total: number;
+  puntoEntrega?: PuntoEntrega;
   agregar: (producto: Producto, cantidad: number) => void;
   quitar: (productoId: string) => void;
   cambiarCantidad: (productoId: string, cantidad: number) => void;
+  elegirPuntoEntrega: (punto: PuntoEntrega) => void;
   vaciar: () => void;
 };
 
@@ -21,6 +24,7 @@ const CarritoContext = createContext<CarritoContextType | undefined>(undefined);
 
 export function CarritoProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [puntoEntrega, setPuntoEntrega] = useState<PuntoEntrega>();
 
   const agregar = (producto: Producto, cantidad: number) => {
     setItems((prev) => {
@@ -52,7 +56,13 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const vaciar = () => setItems([]);
+  const elegirPuntoEntrega = (punto: PuntoEntrega) => setPuntoEntrega(punto);
+
+  // Vacía el carrito y también el lugar de entrega elegido
+  const vaciar = () => {
+    setItems([]);
+    setPuntoEntrega(undefined);
+  };
 
   const comercioId = items[0]?.producto.comercioId;
   const totalUnidades = items.reduce((suma, i) => suma + i.cantidad, 0);
@@ -60,7 +70,18 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
 
   return (
     <CarritoContext.Provider
-      value={{ items, comercioId, totalUnidades, total, agregar, quitar, cambiarCantidad, vaciar }}
+      value={{
+        items,
+        comercioId,
+        totalUnidades,
+        total,
+        puntoEntrega,
+        agregar,
+        quitar,
+        cambiarCantidad,
+        elegirPuntoEntrega,
+        vaciar,
+      }}
     >
       {children}
     </CarritoContext.Provider>

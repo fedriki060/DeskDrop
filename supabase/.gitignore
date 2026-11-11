@@ -6,3 +6,6 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Secretos de las Edge Functions
+functions/.env
