@@ -31,6 +31,6 @@ USING (
     EXISTS (
         SELECT 1 FROM pedidos
         WHERE pedidos.id = ledger_pagos.pedido_id
-        AND pedidos.usuario_id = auth.uid()
+     AND pedidos.solicitante_id = auth.uid()
     )
 );
