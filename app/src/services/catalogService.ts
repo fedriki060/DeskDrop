@@ -9,6 +9,7 @@ type FilaComercio = {
   tipo: TipoComercio;
   nombre: string;
   descripcion: string | null;
+  imagen_url: string | null;
 };
 
 type FilaProducto = {
@@ -21,7 +22,7 @@ type FilaProducto = {
   imagen_url: string | null;
 };
 
-const COLUMNAS_COMERCIO = 'id, tipo, nombre, descripcion';
+const COLUMNAS_COMERCIO = 'id, tipo, nombre, descripcion, imagen_url';
 const COLUMNAS_PRODUCTO =
   'id, comercio_id, nombre, descripcion, precio, inventario_disponible, imagen_url';
 
@@ -30,6 +31,7 @@ const aComercio = (f: FilaComercio): Comercio => ({
   tipo: f.tipo,
   nombre: f.nombre,
   descripcion: f.descripcion ?? '',
+  imagenUrl: f.imagen_url ?? undefined,
 });
 
 const aProducto = (f: FilaProducto): Producto => ({

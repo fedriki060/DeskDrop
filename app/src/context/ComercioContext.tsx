@@ -6,6 +6,9 @@ import {
   contarPedidosNuevos,
   escucharPedidosComercio,
   obtenerMiComercio,
+  quitarFotoComercio,
+  ResultadoFoto,
+  subirFotoComercio,
 } from '../services/pedidosService';
 import { useAuth } from './AuthContext';
 
@@ -16,6 +19,10 @@ type ComercioContextType = {
   nuevos: number;
   /** Abre o cierra el comercio; devuelve false si no se pudo */
   cambiarRecibiendo: (recibiendo: boolean) => Promise<boolean>;
+  /** Sube la foto elegida como foto del comercio */
+  cambiarFoto: (uri: string, mimeType?: string | null) => Promise<ResultadoFoto>;
+  /** Quita la foto: la lista de tiendas vuelve a mostrar la letra inicial */
+  quitarFoto: () => Promise<ResultadoFoto>;
 };
 
 const ComercioContext = createContext<ComercioContextType | undefined>(undefined);
@@ -64,8 +71,22 @@ export function ComercioProvider({ children }: { children: ReactNode }) {
     return ok;
   };
 
+  const cambiarFoto = async (uri: string, mimeType?: string | null): Promise<ResultadoFoto> => {
+    if (!comercioId) return { ok: false, mensaje: 'Tu cuenta no administra ningún comercio.' };
+    const resultado = await subirFotoComercio(comercioId, uri, mimeType);
+    if (resultado.ok) setComercio((c) => (c ? { ...c, imagenUrl: resultado.url } : c));
+    return resultado;
+  };
+
+  const quitarFoto = async (): Promise<ResultadoFoto> => {
+    if (!comercioId) return { ok: false, mensaje: 'Tu cuenta no administra ningún comercio.' };
+    const resultado = await quitarFotoComercio(comercioId);
+    if (resultado.ok) setComercio((c) => (c ? { ...c, imagenUrl: null } : c));
+    return resultado;
+  };
+
   return (
-    <ComercioContext.Provider value={{ comercio, nuevos, cambiarRecibiendo }}>
+    <ComercioContext.Provider value={{ comercio, nuevos, cambiarRecibiendo, cambiarFoto, quitarFoto }}>
       {children}
     </ComercioContext.Provider>
   );

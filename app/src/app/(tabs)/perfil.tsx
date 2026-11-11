@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Alert } from '../../utils/alerta';
 import { useAuth } from '../../context/AuthContext';
 import CampoTexto from '../../components/CampoTexto';
+import FotoComercio from '../../components/FotoComercio';
 import Casilla from '../../components/Casilla';
 import BotonPrimario from '../../components/BotonPrimario';
 import { useCarrito } from '../../context/CarritoContext';
+import { useComercio } from '../../context/ComercioContext';
 import { tieneEntregasEnCurso } from '../../services/repartidorService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';
 import { CONDICIONES_REPARTIDOR } from '../../utils/legal';
@@ -28,6 +31,31 @@ export default function Perfil() {
     eliminarCuenta,
   } = useAuth();
   const { vaciar } = useCarrito();
+  const { comercio, cambiarFoto, quitarFoto } = useComercio();
+  const [guardandoFoto, setGuardandoFoto] = useState(false);
+
+  // Solo para cuentas de comercio: la foto que aparece en la lista de tiendas
+  const elegirFoto = async () => {
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (resultado.canceled) return;
+    const foto = resultado.assets[0];
+    setGuardandoFoto(true);
+    const guardada = await cambiarFoto(foto.uri, foto.mimeType);
+    setGuardandoFoto(false);
+    if (!guardada.ok) Alert.alert('No se pudo guardar la foto', guardada.mensaje);
+  };
+
+  const eliminarFoto = async () => {
+    setGuardandoFoto(true);
+    const quitada = await quitarFoto();
+    setGuardandoFoto(false);
+    if (!quitada.ok) Alert.alert('No se pudo quitar la foto', quitada.mensaje);
+  };
   const [eliminando, setEliminando] = useState(false);
 
   const [telefono, setTelefono] = useState('');
@@ -129,10 +157,27 @@ export default function Perfil() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.fondo} contentContainerStyle={styles.container}>
       <Ionicons name="person-circle-outline" size={96} color={colors.primary} />
       <Text style={styles.nombre}>{usuario}</Text>
       <Text style={styles.rol}>Rol activo: {etiquetasRol[rolActivo]}</Text>
+
+      {perfil?.rol === 'comercio' && comercio ? (
+        <View style={styles.bloqueFoto}>
+          <FotoComercio nombre={comercio.nombre} imagenUrl={comercio.imagenUrl} tamano={120} />
+          <Text style={styles.nombreComercio}>{comercio.nombre}</Text>
+          <Pressable onPress={elegirFoto} disabled={guardandoFoto} hitSlop={8}>
+            <Text style={styles.enlaceFoto}>
+              {guardandoFoto ? 'Guardando...' : comercio.imagenUrl ? 'Cambiar foto' : 'Subir foto'}
+            </Text>
+          </Pressable>
+          {comercio.imagenUrl && !guardandoFoto ? (
+            <Pressable onPress={eliminarFoto} hitSlop={8}>
+              <Text style={styles.quitarFoto}>Quitar foto</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.bloqueTelefono}>
         <CampoTexto
@@ -204,15 +249,20 @@ export default function Perfil() {
           {eliminando ? 'Eliminando cuenta...' : 'Eliminar mi cuenta'}
         </Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  bloqueFoto: { alignItems: 'center', marginBottom: spacing.lg, gap: spacing.xs },
+  nombreComercio: { marginTop: spacing.sm, fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text },
+  enlaceFoto: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.primary },
+  quitarFoto: { fontSize: fontSize.md, color: colors.danger },
   bloqueTelefono: { alignSelf: 'stretch', marginBottom: spacing.lg },
   ayudaTelefono: { marginBottom: spacing.sm, fontSize: fontSize.sm, color: colors.textMuted },
+  fondo: { flex: 1, backgroundColor: colors.background },
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     padding: spacing.lg,
     paddingTop: spacing.xl,

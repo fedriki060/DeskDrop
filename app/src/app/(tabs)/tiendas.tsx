@@ -13,6 +13,7 @@ import {
 import { useVueltaAPrimerPlano } from '../../hooks/useVueltaAPrimerPlano';
 import { listarComercios } from '../../services/catalogService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';
+import FotoComercio from '../../components/FotoComercio';
 import { Comercio, TipoComercio } from '../../types';
 
 const rutas = {
@@ -88,9 +89,7 @@ export default function Tiendas() {
             router.push({ pathname: rutas[item.tipo], params: { id: item.id } })
           }
         >
-          <View style={styles.inicial}>
-            <Text style={styles.inicialTexto}>{item.nombre.charAt(0)}</Text>
-          </View>
+          <FotoComercio nombre={item.nombre} imagenUrl={item.imagenUrl} tamano={88} />
           <View style={styles.info}>
             <Text style={styles.nombre}>{item.nombre}</Text>
             <Text style={styles.descripcion}>{item.descripcion}</Text>
@@ -124,29 +123,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-  },
-  inicial: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  inicialTexto: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.white,
   },
   info: {
     flex: 1,
     marginHorizontal: spacing.md,
   },
   nombre: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.text,
   },

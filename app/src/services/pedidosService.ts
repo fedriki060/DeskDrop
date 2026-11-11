@@ -16,13 +16,13 @@ type FilaPedido = {
   items_pedido: { cantidad: number; productos: { nombre: string } | null }[];
 };
 
-export type ComercioDelUsuario = { id: string; nombre: string; activo: boolean };
+export type ComercioDelUsuario = { id: string; nombre: string; activo: boolean; imagenUrl: string | null };
 
 /** Comercio que administra el usuario con sesión (null si no administra ninguno). */
 export async function obtenerMiComercio(userId: string): Promise<ComercioDelUsuario | null> {
   const { data, error } = await supabase
     .from('comercios')
-    .select('id, nombre, activo')
+    .select('id, nombre, activo, imagen_url')
     .eq('administrador_id', userId)
     .limit(1)
     .maybeSingle();
@@ -30,7 +30,64 @@ export async function obtenerMiComercio(userId: string): Promise<ComercioDelUsua
     console.warn('[pedidos] comercio:', error.code, error.message);
     return null;
   }
-  return data ? { id: data.id, nombre: data.nombre, activo: data.activo !== false } : null;
+  return data
+    ? { id: data.id, nombre: data.nombre, activo: data.activo !== false, imagenUrl: data.imagen_url ?? null }
+    : null;
+}
+
+// ---------------------------------------------------------------------------
+// Foto del comercio (bucket público `comercios`, carpeta con el id del comercio)
+// ---------------------------------------------------------------------------
+
+const BUCKET_FOTOS = 'comercios';
+const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
+const MAXIMO_FOTO_BYTES = 2 * 1024 * 1024; // igual que el límite del bucket
+
+export type ResultadoFoto = { ok: true; url: string | null } | { ok: false; mensaje: string };
+
+/** Sube la foto elegida (reemplaza la anterior) y la deja como foto del comercio. */
+export async function subirFotoComercio(comercioId: string, uri: string, mimeType?: string | null): Promise<ResultadoFoto> {
+  try {
+    const respuesta = await fetch(uri);
+    const contenido = await respuesta.arrayBuffer();
+    const tipo = mimeType || respuesta.headers.get('content-type') || 'image/jpeg';
+    if (!TIPOS_FOTO.includes(tipo)) return { ok: false, mensaje: 'Elige una imagen JPG, PNG o WebP.' };
+    if (contenido.byteLength > MAXIMO_FOTO_BYTES) return { ok: false, mensaje: 'La foto pesa más de 2 MB. Elige una más liviana.' };
+
+    const ruta = `${comercioId}/foto`;
+    const { error } = await supabase.storage
+      .from(BUCKET_FOTOS)
+      .upload(ruta, contenido, { contentType: tipo, upsert: true, cacheControl: '3600' });
+    if (error) throw error;
+
+    // ?v= evita que se siga viendo la foto anterior guardada en caché
+    const url = `${supabase.storage.from(BUCKET_FOTOS).getPublicUrl(ruta).data.publicUrl}?v=${Date.now()}`;
+    const { data, error: errorUrl } = await supabase
+      .from('comercios')
+      .update({ imagen_url: url })
+      .eq('id', comercioId)
+      .select('id');
+    if (errorUrl || !data || data.length === 0) throw errorUrl ?? new Error('sin permiso');
+    return { ok: true, url };
+  } catch (e) {
+    console.warn('[pedidos] subir foto:', e instanceof Error ? e.message : e);
+    return { ok: false, mensaje: 'No se pudo guardar la foto. Revisa tu conexión e inténtalo de nuevo.' };
+  }
+}
+
+/** Quita la foto del comercio: la lista de tiendas vuelve a mostrar la letra inicial. */
+export async function quitarFotoComercio(comercioId: string): Promise<ResultadoFoto> {
+  const { data, error } = await supabase
+    .from('comercios')
+    .update({ imagen_url: null })
+    .eq('id', comercioId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    console.warn('[pedidos] quitar foto:', error?.code, error?.message);
+    return { ok: false, mensaje: 'No se pudo quitar la foto. Inténtalo de nuevo.' };
+  }
+  await supabase.storage.from(BUCKET_FOTOS).remove([`${comercioId}/foto`]); // si falla, no importa
+  return { ok: true, url: null };
 }
 
 /** Pedidos del comercio, del más reciente al más antiguo. Lanza Error si no se pudieron leer. */

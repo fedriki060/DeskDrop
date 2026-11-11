@@ -21,6 +21,8 @@ export type Comercio = {
   tipo: TipoComercio;
   nombre: string;
   descripcion: string;
+  /** Foto del comercio; si no tiene, la app muestra la letra inicial */
+  imagenUrl?: string;
 };
 
 export type Producto = {
