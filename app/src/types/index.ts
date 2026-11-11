@@ -56,3 +56,19 @@ export type Pedido = {
   total: number;
   creadoEn: string;
 };
+
+// Pedido visto por el domiciliario: lo que necesita para aceptarlo, recogerlo, entregarlo y cobrarlo
+export type Entrega = {
+  id: string;
+  numero: number;
+  estado: EstadoPedido;
+  listoParaRecoger: boolean;
+  total: number;
+  comercio: string;
+  puntoEntrega: string;
+  indicaciones: string | null;
+  notas: string | null;
+  items: ItemPedido[];
+  /** true si ya lo tiene asignado este domiciliario; false si está disponible para aceptar */
+  esMia: boolean;
+};
