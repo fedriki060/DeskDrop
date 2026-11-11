@@ -218,3 +218,51 @@ export async function regenerarCodigoEntrega(pedidoId: string): Promise<string |
   }
   return data.codigo;
 }
+
+// ---------------------------------------------------------------------------
+// Historial del solicitante (HU-25)
+// ---------------------------------------------------------------------------
+
+export type PedidoHistorial = {
+  id: string;
+  numero: number;
+  estado: EstadoPedido;
+  total: number;
+  comercio: string;
+  creadoEn: string;
+  items: ItemPedido[];
+};
+
+type FilaHistorial = {
+  id: string;
+  numero: number;
+  estado: EstadoPedido;
+  total: number;
+  creado_en: string;
+  comercios: { nombre: string } | null;
+  items_pedido: { cantidad: number; productos: { nombre: string } | null }[];
+};
+
+/** Pedidos del solicitante, del más reciente al más antiguo. Lanza Error si no se pudieron leer. */
+export async function obtenerHistorial(userId: string): Promise<PedidoHistorial[]> {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('id, numero, estado, total, creado_en, comercios(nombre), items_pedido(cantidad, productos(nombre))')
+    .eq('solicitante_id', userId)
+    .order('creado_en', { ascending: false })
+    .limit(50)
+    .returns<FilaHistorial[]>();
+  if (error) {
+    console.warn('[seguimiento] historial:', error.code, error.message);
+    throw new Error('No se pudo cargar tu historial. Revisa tu conexión.');
+  }
+  return (data ?? []).map((f) => ({
+    id: f.id,
+    numero: f.numero,
+    estado: f.estado,
+    total: Number(f.total),
+    comercio: f.comercios?.nombre ?? 'Comercio',
+    creadoEn: f.creado_en,
+    items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
+  }));
+}

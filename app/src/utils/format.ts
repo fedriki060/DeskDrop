@@ -7,3 +7,9 @@ export function formatearHora(iso: string): string {
   const dos = (n: number) => n.toString().padStart(2, '0');
   return `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 }
+
+export function formatearFecha(iso: string): string {
+  const fecha = new Date(iso);
+  const dos = (n: number) => n.toString().padStart(2, '0');
+  return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} ${formatearHora(iso)}`;
+}

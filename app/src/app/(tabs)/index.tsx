@@ -1,5 +1,7 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import BotonPrimario from '../../components/BotonPrimario';
 import { useVueltaAPrimerPlano } from '../../hooks/useVueltaAPrimerPlano';
 import ProtegidoPorRol from '../../components/ProtegidoPorRol';
 import SeguimientoPedido from '../../components/SeguimientoPedido';
@@ -12,9 +14,11 @@ import {
 import { colors, fontSize, spacing } from '../../theme';
 
 const REFRESCO_MS = 15000;
+const ESTADOS_EN_CURSO = ['Creado', 'Asignado', 'En Camino', 'Entregado'];
 
 export default function Inicio() {
   const { perfil } = useAuth();
+  const router = useRouter();
   const userId = perfil?.id;
   const [pedido, setPedido] = useState<Pedido | null>();
   const [error, setError] = useState<string>();
@@ -63,10 +67,13 @@ export default function Inicio() {
           <View style={styles.centro}>
             <ActivityIndicator color={colors.primary} />
           </View>
-        ) : pedido ? (
+        ) : pedido && ESTADOS_EN_CURSO.includes(pedido.estado) ? (
           <SeguimientoPedido pedido={pedido} alCambiar={cargar} />
         ) : !error ? (
-          <Text style={styles.vacio}>Aún no tienes pedidos. Elige una tienda para empezar.</Text>
+          <View>
+            <Text style={styles.vacio}>No tienes un pedido en curso.</Text>
+            <BotonPrimario titulo="Ir a Tiendas" onPress={() => router.navigate('/tiendas')} />
+          </View>
         ) : null}
       </ScrollView>
     </ProtegidoPorRol>
