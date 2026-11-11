@@ -5,7 +5,9 @@
 1. Aplicar las migraciones a staging (`supabase db push`). Deben estar todas, en especial las de
    `20261110200000` a `20261110250000` (modo repartidor, código de entrega, aceptar/recoger,
    número de pedido, entrega en curso, cancelar pedido). Sin ellas la app falla.
-2. Cuentas de prueba (todas con contraseña temporal, dominio permitido):
+2. Cuentas de prueba: `node supabase/crear_usuarios_prueba.mjs` las crea en staging de una vez
+   (`demo.solicitante`, `demo.domiciliario` ya habilitado como repartidor, `demo.comercio` dueño de la
+   cafetería y `demo.admin`; las instrucciones de uso están al inicio del archivo). A mano:
    - **Comercio:** crear con `supabase/alta_comercio.sql` (ver pasos al inicio del archivo).
    - **Solicitante:** registrarse desde la app con un correo institucional.
    - **Domiciliario:** un segundo usuario solicitante que active "Modo domiciliario" en Perfil
