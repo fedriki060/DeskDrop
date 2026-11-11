@@ -46,6 +46,8 @@ INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
 UPDATE public.perfiles SET rol = 'admin'      WHERE id = 'f0000000-0000-0000-0000-00000000000a';
 UPDATE public.perfiles SET rol = 'comercio'   WHERE id IN ('f0000000-0000-0000-0000-00000000000c', 'f0000000-0000-0000-0000-00000000000d');
 UPDATE public.perfiles SET rol = 'repartidor' WHERE id = 'f0000000-0000-0000-0000-00000000000b';
+-- El repartidor de prueba ya aceptó la declaración de +18 (HU-19); sin ella no ve ni cobra pedidos.
+INSERT INTO public.aceptaciones_repartidor (usuario_id, version) VALUES ('f0000000-0000-0000-0000-00000000000b', 'test');
 
 INSERT INTO public.zonas_campus (id, nombre) VALUES ('f1000000-0000-0000-0000-000000000001', 'Zona de prueba');
 INSERT INTO public.puntos_entrega (id, zona_id, nombre, latitud, longitud) VALUES

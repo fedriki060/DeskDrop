@@ -23,6 +23,10 @@ insert into public.perfiles (id, email, nombre_completo, rol) values
   ('00000000-0000-0000-0000-0000000000c2', 'com2@eia.edu.co', 'Admin Comercio 2', 'comercio')
 on conflict (id) do update set rol = excluded.rol;
 
+-- El repartidor de prueba ya aceptó la declaración de +18 (HU-19); sin ella no ve ni cobra pedidos.
+insert into public.aceptaciones_repartidor (usuario_id, version) values
+  ('00000000-0000-0000-0000-0000000000b1', 'test');
+
 insert into public.comercios (id, administrador_id, nombre, activo) values
   ('00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000c1', 'Cafetería Test', true),
   ('00000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-0000000000c2', 'Papelería Test', true);

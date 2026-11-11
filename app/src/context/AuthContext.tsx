@@ -1,7 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Perfil, Rol } from '../types';
+import { activarModoRepartidor, estaHabilitadoRepartidor } from '../services/repartidorService';
 import { VERSION_LEGAL } from '../utils/legal';
 import { rolesDesdeBase } from '../utils/roles';
 
@@ -23,6 +25,10 @@ type AuthContextType = {
   /** Modo con el que está usando la app ahora; decide qué pestañas se ven */
   rolActivo: Rol;
   cambiarRolActivo: (rol: Rol) => void;
+  /** true si ya declaró que tiene 18 años o más (vista de domiciliario disponible) */
+  habilitadoRepartidor: boolean;
+  /** Registra la declaración de +18 la primera vez y habilita la vista de domiciliario */
+  habilitarRepartidor: () => Promise<Resultado>;
   sesion: boolean;
   /** true mientras se lee la sesión guardada al abrir la app */
   cargando: boolean;
@@ -88,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [perfil, setPerfil] = useState<Perfil>();
   const [cargando, setCargando] = useState(true);
   const [rolPreferido, setRolPreferido] = useState<Rol>();
+  const [habilitadoRepartidor, setHabilitadoRepartidor] = useState(false);
     // Mientras se restablece la contraseña no se publica la sesión: si no, la app saltaría
   // a las pestañas al validar el código y antes de guardar la contraseña nueva
   const sesionEnPausa = useRef(false);
@@ -114,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setPerfil(undefined);
       setRolPreferido(undefined); // quien entre después empieza en su modo por defecto
+      setHabilitadoRepartidor(false);
       return;
     }
     let vigente = true;
@@ -136,6 +144,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             : undefined
         );
       });
+    return () => {
+      vigente = false;
+    };
+  }, [userId]);
+
+  // Habilitación de repartidor y última vista usada (se recuerda por usuario en el celular)
+  useEffect(() => {
+    if (!userId) return;
+    let vigente = true;
+    Promise.all([
+      estaHabilitadoRepartidor(),
+      AsyncStorage.getItem(`deskdrop:vista:${userId}`).catch(() => null),
+    ]).then(([habilitado, vista]) => {
+      if (!vigente) return;
+      setHabilitadoRepartidor(habilitado);
+      if (habilitado && vista === 'domiciliario') setRolPreferido('domiciliario');
+    });
     return () => {
       vigente = false;
     };
@@ -263,12 +288,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
     // El modo activo es el que eligió el usuario, si su rol lo permite; si no, el primero de sus modos
-  const roles: Rol[] = perfil ? rolesDesdeBase(perfil.rol) : [];
+  const roles: Rol[] = perfil ? rolesDesdeBase(perfil.rol, habilitadoRepartidor) : [];
   const rolActivo: Rol =
     rolPreferido && roles.includes(rolPreferido) ? rolPreferido : (roles[0] ?? 'solicitante');
 
   const cambiarRolActivo = (rol: Rol) => {
-    if (roles.includes(rol)) setRolPreferido(rol);
+    if (!roles.includes(rol)) return;
+    setRolPreferido(rol);
+    if (userId) AsyncStorage.setItem(`deskdrop:vista:${userId}`, rol).catch(() => {});
+  };
+
+  const habilitarRepartidor = async (): Promise<Resultado> => {
+    const resultado = await activarModoRepartidor();
+    if (resultado.ok) setHabilitadoRepartidor(true);
+    return resultado;
   };
 
     const eliminarCuenta = async (): Promise<Resultado> => {
@@ -302,6 +335,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles,
         rolActivo,
         cambiarRolActivo,
+        habilitadoRepartidor,
+        habilitarRepartidor,
         sesion: session !== null,
         cargando,
         iniciarSesion,

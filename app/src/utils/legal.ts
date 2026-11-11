@@ -59,3 +59,23 @@ export const PRIVACIDAD: SeccionLegal[] = [
     cuerpo: 'Canal de contacto por definir.',
   },
 ];
+
+// Declaración que se acepta una sola vez al activar la vista de domiciliario (HU-19).
+// Cambiar la versión obliga a aceptarla de nuevo: súbela solo si cambia el sentido del texto.
+export const VERSION_CONDICIONES_REPARTIDOR = '0.1-borrador';
+
+export const CONDICIONES_REPARTIDOR: SeccionLegal[] = [
+  {
+    titulo: 'Mayoría de edad',
+    cuerpo: 'Para entregar pedidos debes tener 18 años o más.',
+  },
+  {
+    titulo: 'Entregas',
+    cuerpo:
+      'Entregas solo en los puntos habilitados del campus. Al recibir el pedido debes pedir al solicitante su código de 4 dígitos.',
+  },
+  {
+    titulo: 'Pagos en efectivo',
+    cuerpo: 'Si el pedido es en efectivo, debes cobrar el total y registrarlo en la app.',
+  },
+];

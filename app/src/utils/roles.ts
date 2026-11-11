@@ -9,17 +9,23 @@ export function rutaInicial(rol: Rol): RutaInicial {
 }
 
 // Traduce el rol guardado en la base a los modos que la app puede mostrar.
-// PROVISIONAL: la base tiene un solo rol por perfil; si el equipo decide varios roles por
-// usuario, solo cambia esta función. Admin todavía no tiene pantallas propias.
-export function rolesDesdeBase(rol: RolBase): Rol[] {
+// Cualquier solicitante (o repartidor heredado) puede ser domiciliario tras declarar que tiene
+// 18 años o más (`habilitadoRepartidor`, HU-19). Admin todavía no tiene pantallas propias.
+export function rolesDesdeBase(rol: RolBase, habilitadoRepartidor = false): Rol[] {
   switch (rol) {
     case 'repartidor':
-      return ['solicitante', 'domiciliario'];
+    case 'solicitante':
+      return habilitadoRepartidor ? ['solicitante', 'domiciliario'] : ['solicitante'];
     case 'comercio':
       return ['comercio'];
     default:
       return ['solicitante'];
   }
+}
+
+/** ¿Puede este rol de la base pedir la vista de domiciliario (aunque aún no la haya activado)? */
+export function puedeActivarRepartidor(rol: RolBase): boolean {
+  return rol === 'solicitante' || rol === 'repartidor';
 }
 
 export const etiquetasRol: Record<Rol, string> = {
