@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { nombreCanal } from './realtime';
 import { EstadoPedido, ItemPedido } from '../types';
 
 // Seguimiento en vivo con Supabase Realtime (T-046). La base solo envía los cambios de los
@@ -29,7 +30,7 @@ type FilaPedido = {
  */
 export function escucharPedido(pedidoId: string, alCambiar: (cambio: CambioPedido) => void): () => void {
   const canal = supabase
-    .channel(`pedido-${pedidoId}`)
+    .channel(nombreCanal(`pedido-${pedidoId}`))
     .on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `id=eq.${pedidoId}` },
@@ -192,7 +193,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
  */
 export function escucharMisPedidos(userId: string, alCambiar: () => void): () => void {
   const canal = supabase
-    .channel(`mis-pedidos-${userId}`)
+    .channel(nombreCanal(`mis-pedidos-${userId}`))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'pedidos', filter: `solicitante_id=eq.${userId}` },

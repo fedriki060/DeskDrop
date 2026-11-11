@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { nombreCanal } from './realtime';
 import { EstadoPedido, Pedido } from '../types';
 
 // Bandeja del comercio con datos reales. La RLS deja ver solo los pedidos de los comercios que
@@ -100,7 +101,7 @@ export function puedeMarcarListo(pedido: Pedido): boolean {
  */
 export function escucharPedidosComercio(comercioId: string, alCambiar: () => void): () => void {
   const canal = supabase
-    .channel(`pedidos-comercio-${comercioId}`)
+    .channel(nombreCanal(`pedidos-comercio-${comercioId}`))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'pedidos', filter: `comercio_id=eq.${comercioId}` },

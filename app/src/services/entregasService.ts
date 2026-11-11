@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { nombreCanal } from './realtime';
 import { Entrega, EstadoPedido } from '../types';
 
 // Acciones del domiciliario sobre un pedido (HU-21). La app no escribe en `pedidos`: el cambio
@@ -95,7 +96,7 @@ export async function listarEntregas(userId: string): Promise<Entrega[]> {
  */
 export function escucharEntregas(alCambiar: () => void): () => void {
   const canal = supabase
-    .channel('entregas-domiciliario')
+    .channel(nombreCanal('entregas-domiciliario'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => alCambiar())
     .subscribe();
   return () => {
