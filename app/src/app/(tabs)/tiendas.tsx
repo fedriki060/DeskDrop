@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   SectionList,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { useVueltaAPrimerPlano } from '../../hooks/useVueltaAPrimerPlano';
 import { listarComercios } from '../../services/catalogService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';
 import { Comercio, TipoComercio } from '../../types';
@@ -29,12 +31,30 @@ export default function Tiendas() {
   const router = useRouter();
   const [comercios, setComercios] = useState<Comercio[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [refrescando, setRefrescando] = useState(false);
+  const vueltas = useVueltaAPrimerPlano();
 
-  useEffect(() => {
-    listarComercios()
-      .then(setComercios)
-      .finally(() => setCargando(false));
-  }, []);
+  // Un comercio que deja de recibir pedidos desaparece de la lista: se vuelve a leer cada vez que
+  // la pestaña recibe el foco o la app vuelve al primer plano (si falla, se queda la lista anterior)
+  const cargar = useCallback(
+    () =>
+      listarComercios()
+        .then(setComercios)
+        .catch(() => {})
+        .finally(() => setCargando(false)),
+    []
+  );
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [cargar, vueltas])
+  );
+
+  const onRefrescar = async () => {
+    setRefrescando(true);
+    await cargar();
+    setRefrescando(false);
+  };
 
   if (cargando) {
     return (
@@ -56,6 +76,7 @@ export default function Tiendas() {
       sections={secciones}
       keyExtractor={(c) => c.id}
       contentContainerStyle={styles.lista}
+      refreshControl={<RefreshControl refreshing={refrescando} onRefresh={onRefrescar} />}
       stickySectionHeadersEnabled={false}
       renderSectionHeader={({ section }) => (
         <Text style={styles.seccion}>{section.title}</Text>
