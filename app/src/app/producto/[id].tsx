@@ -3,12 +3,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     StyleSheet,
     Text,
     View,
 } from 'react-native';
+import { Alert } from '../../utils/alerta';
 import { useCarrito } from '../../context/CarritoContext';
 import { obtenerProducto } from '../../services/catalogService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';

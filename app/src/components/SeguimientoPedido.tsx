@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { cancelarPedido } from '../services/pedidosService';
 import { SeguimientoPedido as Pedido } from '../services/seguimientoService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../theme';

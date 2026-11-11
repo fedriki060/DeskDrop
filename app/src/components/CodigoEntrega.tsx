@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { obtenerCodigoEntrega, regenerarCodigoEntrega } from '../services/seguimientoService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../theme';
 

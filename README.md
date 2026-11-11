@@ -249,7 +249,7 @@ El `project ref` es la parte inicial de la URL del proyecto (`https://<PROJECT-R
 | `permission denied` (`42501`) al llamar una función o tabla | Falta el `grant` o la política en la migración, o el usuario no tiene el rol |
 | Un cambio del código no se ve en el celular | `npx expo start -c` para limpiar la caché |
 | `Unable to resolve module` al abrir la app | Un archivo importa otro que no se subió o tiene el nombre mal escrito |
-| El código de verificación no se puede escribir completo | *Email OTP Length* del panel distinto al esperado; la app acepta de 6 a 10 dígitos |
+| El código de verificación no se puede escribir completo | *Email OTP Length* del panel distinto al esperado; la app acepta de 6 dígitos |
 | No llegan los correos | Límite de 2 por hora sin SMTP propio; revisar spam y Authentication → Logs |
 | Registrar un correo externo da un error genérico | Es lo esperado: el trigger de dominio lo rechaza |
 | `git pull` abre un editor raro (Vim) | `Esc`, escribir `:wq` y `Enter`. Para cambiarlo: `git config --global core.editor "notepad"` |

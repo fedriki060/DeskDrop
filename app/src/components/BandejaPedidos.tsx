@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { useComercio } from '../context/ComercioContext';
 import { useVueltaAPrimerPlano } from '../hooks/useVueltaAPrimerPlano';
 import {

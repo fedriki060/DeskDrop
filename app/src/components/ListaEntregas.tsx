@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   SectionList,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { useAuth } from '../context/AuthContext';
 import { useVueltaAPrimerPlano } from '../hooks/useVueltaAPrimerPlano';
 import {

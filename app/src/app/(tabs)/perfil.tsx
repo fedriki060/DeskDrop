@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert } from '../../utils/alerta';
 import { useAuth } from '../../context/AuthContext';
 import Casilla from '../../components/Casilla';
 import BotonPrimario from '../../components/BotonPrimario';
