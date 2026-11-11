@@ -9,6 +9,8 @@ export type Perfil = {
   id: string;
   email: string;
   nombreCompleto: string;
+  /** Celular de contacto (10 dígitos) o null si no lo ha registrado */
+  telefono: string | null;
   rol: RolBase;
 };
 

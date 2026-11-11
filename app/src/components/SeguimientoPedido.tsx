@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '../utils/alerta';
 import { cancelarPedido } from '../services/pedidosService';
 import { SeguimientoPedido as Pedido } from '../services/seguimientoService';
@@ -101,6 +101,19 @@ export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
         <CodigoEntrega pedidoId={pedido.id} />
       )}
 
+      {pedido.repartidorTelefono && (pedido.estado === 'Asignado' || pedido.estado === 'En Camino') ? (
+        <Pressable
+          style={styles.contacto}
+          onPress={() => Linking.openURL(`tel:${pedido.repartidorTelefono}`).catch(() => {})}
+          hitSlop={8}
+        >
+          <Ionicons name="call-outline" size={20} color={colors.primary} />
+          <Text style={styles.textoContacto}>
+            Llamar a {pedido.repartidor ?? 'tu domiciliario'}: {pedido.repartidorTelefono}
+          </Text>
+        </Pressable>
+      ) : null}
+
       <View style={styles.detalle}>
         <Text style={styles.meta}>Comercio: {pedido.comercio}</Text>
         <Text style={styles.meta}>Entrega en: {pedido.puntoEntrega}</Text>
@@ -129,6 +142,8 @@ export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
 }
 
 const styles = StyleSheet.create({
+  contacto: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  textoContacto: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.primary },
   encabezado: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
   numero: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.text },
   estado: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.primary },

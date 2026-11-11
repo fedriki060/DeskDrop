@@ -128,6 +128,8 @@ export type SeguimientoPedido = {
   puntoEntrega: string;
   /** Primer nombre del domiciliario, una vez que alguien aceptó el pedido */
   repartidor: string | null;
+  /** Celular del domiciliario: solo el solicitante, mientras el pedido está Asignado o En Camino */
+  repartidorTelefono: string | null;
   items: ItemPedido[];
   creadoEn: string;
   /** Forma y estado del pago (pago físico: efectivo al domiciliario) */
@@ -169,11 +171,16 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
   if (!f) return null;
 
   let repartidor: string | null = null;
+  let repartidorTelefono: string | null = null;
   const { data: partes, error: errorPartes } = await supabase.rpc('datos_partes_pedido', {
     p_pedido_ids: [f.id],
   });
   if (errorPartes) console.warn('[seguimiento] nombres:', errorPartes.code, errorPartes.message);
-  else repartidor = (partes as { repartidor: string | null }[] | null)?.[0]?.repartidor || null;
+  else {
+    const parte = (partes as { repartidor: string | null; repartidor_telefono: string | null }[] | null)?.[0];
+    repartidor = parte?.repartidor || null;
+    repartidorTelefono = parte?.repartidor_telefono || null;
+  }
 
   return {
     id: f.id,
@@ -184,6 +191,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
     comercio: f.comercios?.nombre ?? 'Comercio',
     puntoEntrega: f.puntos_entrega?.nombre ?? 'Punto de entrega',
     repartidor,
+    repartidorTelefono,
     items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
     creadoEn: f.creado_en,
     pago: Array.isArray(f.pagos) ? (f.pagos[0] ?? null) : f.pagos,

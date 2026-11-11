@@ -19,3 +19,13 @@ export function esContrasenaSegura(contrasena: string): boolean {
     /\d/.test(contrasena)
   );
 }
+
+// Celular colombiano: 10 dígitos que empiezan por 3. Debe coincidir con perfiles_telefono_formato.
+export function normalizarTelefono(texto: string): string {
+  const digitos = texto.replace(/\D/g, '');
+  return digitos.length === 12 && digitos.startsWith('57') ? digitos.slice(2) : digitos;
+}
+
+export function esTelefonoValido(texto: string): boolean {
+  return /^3\d{9}$/.test(normalizarTelefono(texto));
+}

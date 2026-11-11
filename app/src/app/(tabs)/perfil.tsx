@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Alert } from '../../utils/alerta';
 import { useAuth } from '../../context/AuthContext';
+import CampoTexto from '../../components/CampoTexto';
 import Casilla from '../../components/Casilla';
 import BotonPrimario from '../../components/BotonPrimario';
 import { useCarrito } from '../../context/CarritoContext';
 import { tieneEntregasEnCurso } from '../../services/repartidorService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../../theme';
 import { CONDICIONES_REPARTIDOR } from '../../utils/legal';
+import { esTelefonoValido, normalizarTelefono } from '../../utils/validaciones';
 import { etiquetasRol, puedeActivarRepartidor, rutaInicial } from '../../utils/roles';
 
 export default function Perfil() {
@@ -21,11 +23,32 @@ export default function Perfil() {
     cambiarRolActivo,
     habilitadoRepartidor,
     habilitarRepartidor,
+    actualizarTelefono,
     cerrarSesion,
     eliminarCuenta,
   } = useAuth();
   const { vaciar } = useCarrito();
   const [eliminando, setEliminando] = useState(false);
+
+  const [telefono, setTelefono] = useState('');
+  const [errorTelefono, setErrorTelefono] = useState<string>();
+  const [guardandoTelefono, setGuardandoTelefono] = useState(false);
+  useEffect(() => setTelefono(perfil?.telefono ?? ''), [perfil?.telefono]);
+  const telefonoCambio = normalizarTelefono(telefono) !== (perfil?.telefono ?? '');
+
+  const guardarTelefono = async () => {
+    const limpio = normalizarTelefono(telefono);
+    if (limpio && !esTelefonoValido(limpio)) {
+      setErrorTelefono('Escribe un celular de 10 dígitos que empiece por 3.');
+      return;
+    }
+    setErrorTelefono(undefined);
+    setGuardandoTelefono(true);
+    const resultado = await actualizarTelefono(limpio || null);
+    setGuardandoTelefono(false);
+    if (!resultado.ok) setErrorTelefono(resultado.mensaje);
+    else Alert.alert('Listo', limpio ? 'Guardamos tu celular.' : 'Borramos tu celular.');
+  };
 
   const [declaracion, setDeclaracion] = useState(false);
   const [mayorDeEdad, setMayorDeEdad] = useState(false);
@@ -111,6 +134,31 @@ export default function Perfil() {
       <Text style={styles.nombre}>{usuario}</Text>
       <Text style={styles.rol}>Rol activo: {etiquetasRol[rolActivo]}</Text>
 
+      <View style={styles.bloqueTelefono}>
+        <CampoTexto
+          etiqueta="Celular"
+          value={telefono}
+          onChangeText={(t) => {
+            setTelefono(t);
+            setErrorTelefono(undefined);
+          }}
+          keyboardType="phone-pad"
+          maxLength={14}
+          placeholder="3001234567"
+          error={errorTelefono}
+        />
+        <Text style={styles.ayudaTelefono}>
+          Si haces entregas, el solicitante lo ve solo mientras llevas su pedido.
+        </Text>
+        {telefonoCambio ? (
+          <BotonPrimario
+            titulo={guardandoTelefono ? 'Guardando...' : 'Guardar celular'}
+            deshabilitado={guardandoTelefono}
+            onPress={guardarTelefono}
+          />
+        ) : null}
+      </View>
+
       {puedeSerDomiciliario && (
         <View style={styles.filaModo}>
           <Text style={styles.textoModo}>Activar Domiciliario</Text>
@@ -161,6 +209,8 @@ export default function Perfil() {
 }
 
 const styles = StyleSheet.create({
+  bloqueTelefono: { alignSelf: 'stretch', marginBottom: spacing.lg },
+  ayudaTelefono: { marginBottom: spacing.sm, fontSize: fontSize.sm, color: colors.textMuted },
   container: {
     flex: 1,
     alignItems: 'center',

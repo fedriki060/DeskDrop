@@ -29,6 +29,8 @@ type AuthContextType = {
   habilitadoRepartidor: boolean;
   /** Registra la declaración de +18 la primera vez y habilita la vista de domiciliario */
   habilitarRepartidor: () => Promise<Resultado>;
+  /** Guarda el celular del usuario (solo dígitos) o lo borra con null */
+  actualizarTelefono: (telefono: string | null) => Promise<Resultado>;
   sesion: boolean;
   /** true mientras se lee la sesión guardada al abrir la app */
   cargando: boolean;
@@ -127,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let vigente = true;
     supabase
       .from('perfiles')
-      .select('id, email, nombre_completo, rol')
+      .select('id, email, nombre_completo, telefono, rol')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -139,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 id: data.id,
                 email: data.email,
                 nombreCompleto: data.nombre_completo,
+                telefono: data.telefono ?? null,
                 rol: data.rol,
               }
             : undefined
@@ -304,6 +307,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return resultado;
   };
 
+  const actualizarTelefono = async (telefono: string | null): Promise<Resultado> => {
+    if (!userId) return { ok: false, mensaje: 'Inicia sesión de nuevo.' };
+    const { error } = await supabase.from('perfiles').update({ telefono }).eq('id', userId);
+    if (error) {
+      console.warn('[auth] teléfono:', error.code, error.message);
+      return {
+        ok: false,
+        mensaje:
+          error.code === '23514'
+            ? 'El celular debe tener 10 dígitos y empezar por 3.'
+            : 'No se pudo guardar el celular. Inténtalo de nuevo.',
+      };
+    }
+    setPerfil((p) => (p ? { ...p, telefono } : p));
+    return { ok: true };
+  };
+
     const eliminarCuenta = async (): Promise<Resultado> => {
     const { error } = await supabase.rpc('eliminar_mi_cuenta');
     if (error) {
@@ -337,6 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cambiarRolActivo,
         habilitadoRepartidor,
         habilitarRepartidor,
+        actualizarTelefono,
         sesion: session !== null,
         cargando,
         iniciarSesion,
