@@ -46,6 +46,7 @@ export type ItemPedido = {
 
 export type Pedido = {
   id: string;
+  /** Número corto que asigna la base (pedidos.numero) */
   numero: number;
   comercioId: string;
   solicitante: string;

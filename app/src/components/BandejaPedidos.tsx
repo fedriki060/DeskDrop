@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import {
+  escucharPedidosComercio,
   listarPedidosComercio,
   marcarListoParaRecoger,
   puedeMarcarListo,
@@ -35,14 +36,23 @@ export default function BandejaPedidos({ comercioId }: Props) {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
+  const [error, setError] = useState<string>();
 
   const cargar = useCallback(async () => {
-    setPedidos(await listarPedidosComercio(comercioId));
+    try {
+      setPedidos(await listarPedidosComercio(comercioId));
+      setError(undefined);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron cargar los pedidos.');
+    }
   }, [comercioId]);
 
   useEffect(() => {
     cargar().finally(() => setCargando(false));
   }, [cargar]);
+
+  // Pedido nuevo o cambio de estado: se recarga la lista sin que el comercio tenga que deslizar
+  useEffect(() => escucharPedidosComercio(comercioId, cargar), [comercioId, cargar]);
 
   const onRefrescar = async () => {
     setRefrescando(true);
@@ -59,7 +69,11 @@ export default function BandejaPedidos({ comercioId }: Props) {
         {
           text: 'Listo para recoger',
           onPress: async () => {
-            await marcarListoParaRecoger(pedido.id);
+            try {
+              await marcarListoParaRecoger(pedido.id);
+            } catch (e) {
+              Alert.alert('No se pudo marcar', e instanceof Error ? e.message : 'Intenta de nuevo.');
+            }
             await cargar();
           },
         },
@@ -81,7 +95,8 @@ export default function BandejaPedidos({ comercioId }: Props) {
       keyExtractor={(p) => p.id}
       contentContainerStyle={styles.lista}
       refreshControl={<RefreshControl refreshing={refrescando} onRefresh={onRefrescar} />}
-      ListEmptyComponent={<Text style={styles.vacio}>Aún no hay pedidos</Text>}
+      ListHeaderComponent={error ? <Text style={styles.error}>{error}</Text> : undefined}
+      ListEmptyComponent={error ? undefined : <Text style={styles.vacio}>Aún no hay pedidos</Text>}
       renderItem={({ item }) => (
         <View style={styles.tarjeta}>
           <View style={styles.encabezado}>
@@ -134,6 +149,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: fontSize.lg,
     color: colors.textMuted,
+  },
+  error: {
+    marginBottom: spacing.md,
+    textAlign: 'center',
+    fontSize: fontSize.md,
+    color: colors.danger,
   },
   tarjeta: {
     padding: spacing.md,
