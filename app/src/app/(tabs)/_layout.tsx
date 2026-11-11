@@ -109,6 +109,14 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="productos"
+        options={{
+          title: 'Productos',
+          tabBarIcon: tabIcon('pricetags-outline'),
+          href: visibleSi(esComercio),
+        }}
+      />
+      <Tabs.Screen
         name="perfil"
         options={{ title: 'Perfil', tabBarIcon: tabIcon('person-outline') }}
       />
