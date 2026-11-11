@@ -64,7 +64,7 @@ export default function Inicio() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : pedido ? (
-          <SeguimientoPedido pedido={pedido} />
+          <SeguimientoPedido pedido={pedido} alCambiar={cargar} />
         ) : !error ? (
           <Text style={styles.vacio}>Aún no tienes pedidos. Elige una tienda para empezar.</Text>
         ) : null}

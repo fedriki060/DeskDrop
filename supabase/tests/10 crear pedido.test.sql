@@ -261,11 +261,11 @@ select results_eq(
      where id in ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000f5',
                   '00000000-0000-0000-0000-0000000000f6', '00000000-0000-0000-0000-0000000000f7')
      order by id $$,
-  $$ values ('00000000-0000-0000-0000-0000000000f1'::uuid, 3),
+  $$ values ('00000000-0000-0000-0000-0000000000f1'::uuid, 5),
             ('00000000-0000-0000-0000-0000000000f5'::uuid, 10),
-            ('00000000-0000-0000-0000-0000000000f6'::uuid, 8),
+            ('00000000-0000-0000-0000-0000000000f6'::uuid, 9),
             ('00000000-0000-0000-0000-0000000000f7'::uuid, 0) $$,
-  'tras todos los rechazos el inventario no cambió');
+  'tras todos los rechazos el inventario no cambió (al cancelarse el primer pedido, T-044 repuso sus unidades: f1 a 5 y f6 a 9)');
 
 select is(
   (select count(*)::int from public.pedidos where solicitante_id = '00000000-0000-0000-0000-0000000000a2'),

@@ -132,6 +132,8 @@ export type SeguimientoPedido = {
   creadoEn: string;
   /** Forma y estado del pago (pago físico: efectivo al domiciliario) */
   pago: { metodo: string; estado: string; monto: number } | null;
+  /** Si está cancelado: quién lo canceló (solicitante, comercio o sistema) */
+  canceladoPor: string | null;
 };
 
 type FilaSeguimiento = {
@@ -141,6 +143,7 @@ type FilaSeguimiento = {
   listo_para_recoger: boolean | null;
   total: number;
   creado_en: string;
+  cancelado_por: string | null;
   comercios: { nombre: string } | null;
   puntos_entrega: { nombre: string } | null;
   items_pedido: { cantidad: number; productos: { nombre: string } | null }[];
@@ -152,7 +155,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
   const { data, error } = await supabase
     .from('pedidos')
     .select(
-      'id, numero, estado, listo_para_recoger, total, creado_en, comercios(nombre), puntos_entrega(nombre), items_pedido(cantidad, productos(nombre)), pagos(metodo, estado, monto)'
+      'id, numero, estado, listo_para_recoger, total, creado_en, cancelado_por, comercios(nombre), puntos_entrega(nombre), items_pedido(cantidad, productos(nombre)), pagos(metodo, estado, monto)'
     )
     .eq('solicitante_id', userId)
     .order('creado_en', { ascending: false })
@@ -184,6 +187,7 @@ export async function obtenerUltimoPedido(userId: string): Promise<SeguimientoPe
     items: f.items_pedido.map((i) => ({ nombre: i.productos?.nombre ?? 'Producto', cantidad: i.cantidad })),
     creadoEn: f.creado_en,
     pago: Array.isArray(f.pagos) ? (f.pagos[0] ?? null) : f.pagos,
+    canceladoPor: f.cancelado_por,
   };
 }
 

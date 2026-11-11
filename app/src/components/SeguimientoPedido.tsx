@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { cancelarPedido } from '../services/pedidosService';
 import { SeguimientoPedido as Pedido } from '../services/seguimientoService';
 import { colors, fontSize, fontWeight, radius, spacing } from '../theme';
 import { EstadoPedido } from '../types';
@@ -30,12 +31,43 @@ function mensajeDe(p: Pedido): string {
     case 'Cerrado':
       return 'Pedido cerrado. ¡Gracias por usar DeskDrop!';
     case 'Cancelado':
-      return 'Tu pedido se canceló. Puedes hacer uno nuevo cuando quieras.';
+      return p.canceladoPor === 'comercio'
+        ? 'El comercio no pudo atender tu pedido y lo canceló. Puedes hacer uno nuevo.'
+        : p.canceladoPor === 'sistema'
+          ? 'Ningún domiciliario tomó tu pedido a tiempo y se canceló. Puedes intentarlo de nuevo.'
+          : 'Cancelaste este pedido. Puedes hacer uno nuevo cuando quieras.';
   }
 }
 
-export default function SeguimientoPedido({ pedido }: { pedido: Pedido }) {
+type Props = {
+  pedido: Pedido;
+  /** Se llama después de cancelar para que la pantalla lea de nuevo el pedido */
+  alCambiar?: () => void;
+};
+
+export default function SeguimientoPedido({ pedido, alCambiar }: Props) {
   const cancelado = pedido.estado === 'Cancelado';
+  const puedeCancelar = pedido.estado === 'Creado' || pedido.estado === 'Asignado';
+
+  const confirmarCancelar = () => {
+    Alert.alert(
+      'Cancelar pedido',
+      '¿Seguro que quieres cancelar tu pedido? Esta acción no se puede deshacer.',
+      [
+        { text: 'No, mantenerlo', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            const error = await cancelarPedido(pedido.id);
+            if (error) Alert.alert('No se pudo cancelar', error);
+            alCambiar?.();
+          },
+        },
+      ]
+    );
+  };
+
   const indice = PASOS.findIndex((p) => p.estado === pedido.estado);
 
   return (
@@ -85,6 +117,12 @@ export default function SeguimientoPedido({ pedido }: { pedido: Pedido }) {
           </Text>
         ) : null}
       </View>
+
+      {puedeCancelar && (
+        <Pressable onPress={confirmarCancelar} hitSlop={8}>
+          <Text style={styles.cancelar}>Cancelar pedido</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -98,6 +136,7 @@ const styles = StyleSheet.create({
   paso: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs },
   textoPaso: { marginLeft: spacing.sm, fontSize: fontSize.md, color: colors.textMuted },
   textoPasoHecho: { color: colors.text },
+  cancelar: { marginTop: spacing.lg, textAlign: 'center', fontSize: fontSize.md, color: colors.danger },
   detalle: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surface },
   meta: { marginBottom: spacing.xs, fontSize: fontSize.md, color: colors.textMuted },
   producto: { fontSize: fontSize.md, color: colors.text },

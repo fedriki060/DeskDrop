@@ -144,3 +144,28 @@ export async function cambiarRecibiendoPedidos(comercioId: string, recibiendo: b
   }
   return true;
 }
+
+const MENSAJES_CANCELAR: Record<string, string> = {
+  NO_AUTENTICADO: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  PEDIDO_NO_ENCONTRADO: 'No encontramos este pedido.',
+  ESTADO_NO_PERMITIDO: 'El pedido ya salió y no se puede cancelar.',
+  MOTIVO_INVALIDO: 'El motivo es demasiado largo.',
+};
+
+/**
+ * Cancela un pedido Creado o Asignado: el solicitante dueño ("Cancelar pedido") o el comercio
+ * ("Rechazar pedido"). La base repone el inventario en la misma transacción.
+ * Devuelve null si salió bien, o el mensaje de error para el usuario.
+ */
+export async function cancelarPedido(pedidoId: string, motivo?: string): Promise<string | null> {
+  const { error } = await supabase.rpc('cancelar_pedido', {
+    p_pedido_id: pedidoId,
+    p_motivo: motivo ?? null,
+  });
+  if (error) {
+    const codigo = error.message.split(':')[0].trim();
+    console.warn('[pedidos] cancelar:', error.code, error.message);
+    return MENSAJES_CANCELAR[codigo] ?? 'No se pudo cancelar el pedido. Intenta de nuevo.';
+  }
+  return null;
+}

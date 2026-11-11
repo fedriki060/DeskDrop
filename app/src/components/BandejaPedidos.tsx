@@ -13,6 +13,7 @@ import {
 import { useComercio } from '../context/ComercioContext';
 import { useVueltaAPrimerPlano } from '../hooks/useVueltaAPrimerPlano';
 import {
+  cancelarPedido,
   escucharPedidosComercio,
   listarPedidosComercio,
   marcarListoParaRecoger,
@@ -36,6 +37,7 @@ type Props = {
 };
 
 type Pestana = 'activos' | 'historial';
+const puedeRechazar = (p: Pedido) => p.estado === 'Creado' || p.estado === 'Asignado';
 const ESTADOS_ACTIVOS: EstadoPedido[] = ['Creado', 'Asignado', 'En Camino', 'Entregado'];
 
 export default function BandejaPedidos({ comercioId }: Props) {
@@ -86,6 +88,23 @@ export default function BandejaPedidos({ comercioId }: Props) {
             await cargar();
           },
         },
+      ]
+    );
+  };
+
+  const rechazar = (pedido: Pedido) => {
+    const ejecutar = async (motivo: string) => {
+      const error = await cancelarPedido(pedido.id, motivo);
+      if (error) Alert.alert('No se pudo rechazar', error);
+      await cargar();
+    };
+    Alert.alert(
+      `Rechazar pedido #${pedido.numero}`,
+      'El pedido se cancela, el inventario se repone y el cliente queda avisado. ¿Cuál es el motivo?',
+      [
+        { text: 'No rechazar', style: 'cancel' },
+        { text: 'Sin inventario', style: 'destructive', onPress: () => ejecutar('Sin inventario') },
+        { text: 'Otro motivo', style: 'destructive', onPress: () => ejecutar('Rechazado por el comercio') },
       ]
     );
   };
@@ -184,6 +203,11 @@ export default function BandejaPedidos({ comercioId }: Props) {
               </Pressable>
             ) : null}
           </View>
+          {puedeRechazar(item) && (
+            <Pressable onPress={() => rechazar(item)} hitSlop={8}>
+              <Text style={styles.rechazar}>Rechazar pedido</Text>
+            </Pressable>
+          )}
         </View>
       )}
     />
@@ -278,6 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.primary,
   },
+  rechazar: { marginTop: spacing.sm, textAlign: 'right', fontSize: fontSize.md, color: colors.danger },
   listo: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
